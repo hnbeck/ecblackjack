@@ -1,0 +1,150 @@
+<!--- Java script and HTML implementation fo the GUI ----------------------->
+<!---- Autor: Hans N. Beck  (c) -------------------------------------------->
+<!-
+
+<!DOCTYPE html >
+<html>
+<head>
+	<script src="/web/jquery-1.11.3.min.js"  type="text/javascript"></script>
+	<script src="/web/tau-prolog.js" type="text/javascript"></script>
+	<script src="/web/pengines.js" type="text/javascript"></script>
+
+	<script type="text/javascript">
+		var panswer; // the answer of pengine request is stored globally to make things easy
+
+		// initate a Pengine 
+		var pengine = new Pengine({
+			oncreate: handleCreate, 
+			onsuccess: handleOutput
+		}); 
+
+		// here are the Pengine handle functions
+		function handleCreate() {
+			pengine.ask('playGame(P1, P2)');
+			// load some initial Tau Prolog code
+		}
+		function handleOutput(){
+			// store the answer into global variable for later analysis
+			panswer = this.data[0]["P1"];
+			// write output for control into html element
+			$("#pout").html(JSON.stringify(panswer));
+		}
+
+		// Callback needed for triggering and displaying answers of Tau prolog querys
+		var printAnswer = function(answer){
+			$("#Tauout").html(pl.format_answer(answer));
+			console.log(answer);
+		}
+
+		function analyse() {
+			var session = pl.create(1000);
+			session.consult("htmlIO.pl");
+			session.consult("analyse.pl");
+			session.query("analyse(panswer, Term).");
+			session.answer(printAnswer);
+		}
+			function test() {
+			var session = pl.create(1000);
+			session.consult("htmlIO.pl");
+			session.query("fact(A,B), writeHTML(fact(A,disc), String).");
+			session.answer(printAnswer);
+		}
+
+	</script>
+
+	<!-- Here some Tau Prolog scripts -->
+
+	<script id="htmlIO.pl" type="text/prolog">
+		
+		:- use_module(library(dom)).
+
+		fact(world, sphere).
+
+		% +Term : a Tau Prolog term
+		% -HMTLString : the term as String
+		writeHTML(Term, HTMLString) :-
+			get_by_id('Tauhtml', HTML),
+			open(HTML, write, Stream), 
+			write(Stream, Term),
+			close(Stream),
+			get_html(HTML, HTMLString).
+
+		% -Term : a Tau Prolog Term
+		readHTML(Term) :-
+			get_by_id('TauInput', HTML),
+			open(HTML, read, Stream), 
+			read(Stream, Term),
+			clode(Stream).
+
+	</script>
+
+	<script id="analyse.pl" type="text/prolog">
+		:- use_module(library(dom)).
+		:- use_module(library(js)).
+		:- use_module(library(lists)).
+
+		% +JSObjectID: an reference to a JS object containing the answer of a Pengine query
+		% -TauTerm: the Pengine answer as Tau Prolog Term
+		analyse(JSObjectID, TauTerm) :-
+			prop('Array', Array),
+			prop(JSObjectID, JSObject),
+			parseTerm(JSObject, TauTerm),
+			writeHTML(TauTerm, String),
+			write(String).
+
+		parseTerm(Elem, _) :- var(Elem).
+
+		parseTerm(JSObject, TauTerm) :-
+			prop(JSObject, args, ArgList),
+			prop(JSObject, functor, Functor),
+			parseList(ArgList, TermList),
+			append([Functor], TermList, TermList2),
+			TauTerm =.. TermList2.
+
+		parseList([], []).
+
+		parseList([Head | Tail ], [Head2 | Tail2]) :-
+			(is_list(Head) -> 
+				parseList(Head, Head2);
+				(atomic(Head) -> 
+					Head2 = Head; 
+					parseTerm(Head, Head2)
+				)
+			),
+			parseList(Tail, Tail2).
+
+	</script>
+
+	<title> Demo game Black Jack </title>
+	
+</head>
+<body>
+	
+	
+	<div style="width:800px; margin-left: 10%; margin-top: 10%">
+
+		<h1>Demo game Black Jack</h1>
+		</p>
+		<h3>This simple game is intended as template for projects using SWI Prolog, its Pengines library and Tau-Prolog.</h3>
+		<p>
+		If the page is loaded, a pengine query is triggerd (playGame(P1, P2)). This initialise the game and set up both players P1 and P2.  </p>
+		<p> The test below queries for a hard coded predicate <i>fact(world, sphere)</i>.</p>
+
+		</p>
+		Output of Pengine
+		</p>
+		<div style="padding:20px; border-color:blue; background-color: lightgray;" id="pout">Output element for Pengine</div>
+		</p>
+		Output for Tau Prolog queries. Output is done via callback of the pl.answer function of Tau Prolog. Click <a href="javascript:test()"> here </a> for test
+		</p>
+		<div style="padding:20px; border-color:black; background-color: lightblue;" id="Tauout">Tau Prolog queries</div>
+		</p>
+		Output of Tau terms. Tau Terms are stringifyd over html element. Clicking <a href="javascript:analyse()"> here </a> would parse the Pengine output and write it into html stream.
+		</p>
+		<div style="padding:20px; border-color:black; background-color: lightgreen;" id="Tauhtml">Tau terms</div>
+
+	</div>
+</p>
+	
+</body>
+</html>
