@@ -18,7 +18,6 @@
 :- dynamic card/3.
 
 :- multifile sandbox:safe_primitive/1.
-% sandbox:safe_primitive(ecBlackJack:drawCard(_)).
 
 % card deck
 card(herz, 10, 10).
@@ -65,6 +64,7 @@ initDeck(List) :-
 showDeck(List) :- 
 	findall(X, card(_, X, _), List).
 
+sandbox:safe_primitive(ecBlackJack:showDeck(_)).
 
 % Example for a data structure
 % newPlayer(+player number, -Player structure)
@@ -97,8 +97,10 @@ cardBuilder(Farbe, Name, card(Farbe, Name, X)) :-
 % drawCard(-structure)
 drawCard(Card) :-
 	random_between(1,14, Num), 
-	Card = card(_, _, Num).
-	%retractall(Card). 
+	Card = card(_, _, Num),
+	retractall(Card). 
+
+sandbox:safe_primitive(ecBlackJack:drawCard(_)).
 
 % cardPoints(+color, +Name, -Points)
 cardPoints(Farbe, Name, Points) :-
@@ -231,8 +233,8 @@ do(stop, A, P, A, P, Finish, Msg) :-
 	call(stop, A, P, Finish, Msg).
 
 % draw card and play
-%do(playCard, A, P, A2, P, Finish, Msg) :-
-%	call(playCard, A, A2, Finish, Msg).
+do(playCard, A, P, A2, P, Finish, Msg) :-
+	call(playCard, A, A2, Finish, Msg).
 
 do(showDeck, A, P, A, P, go, Msg) :-
 	showDeck(L), 
@@ -241,6 +243,9 @@ do(showDeck, A, P, A, P, go, Msg) :-
 % wrong command
 %do(_, A, P, A, P, _, Msg) :-
 %	format(atom(Msg), 'Rubbisch, commands are <playCard> or <stop> \n').
+
+% the do command is redunant by using with pengines
+% showDeck, playCard and stop will be called directly
 
 % turn: change active / passive player
 nextPlayer(player(1, F1), player(2, F2), player(2, F2), player(1, F1)).
