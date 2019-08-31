@@ -17,161 +17,146 @@
 :- dynamic card/3.
 
 
-% Faktenbasis - das Kartendeck.
-% card(Kartenfarbe, Kartenname, Punktwert) sei im folgenden benutze Kartenstruktur
+% card deck
 card(herz, 10, 10).
 card(herz, bube, 11).
 card(herz, dame, 12).
 card(herz, koenig, 13).
 card(herz, ass, 14).
 
-% Wer sticht wen ?
+% who wins ?
 win(dame, bube).
 win(koenig, dame).
 win(ass, koenig).
 
-% Beschreibung einer transitive Relation
-% winAlso(+Kartenname, -Kartenname)
+% transitiv wining relation
 winAlso(X,Y) :-
 	win(X,dame),
 	win(dame, Y).
 
-%%%%%%%%% Datenbank programmatisch erweitern %%%%%%%%%%%%%%%%
+%%%%%%%%% Expand data base %%%%%%%%%%%%%%%%
 
-% Abbruchbedingung
+% stop
 addFact(_, End, End).
-% addFact(+Kartenfarbe, Endnummer, -Laufender Index)
+% addFact(+color, end number, -index)
 addFact(Farbe, End, I) :-
 	asserta(card(Farbe, I, I)),
 	I2 is I + 1,
 	addFact(Farbe, End, I2).
 
-% Die beiden müssen in dieser Reihenfolge sein, sonst endet es nicht !
 
 
-% Fülle alle Karten zwischen Start Nummer und EndNummer auf
-% fillDB(+Kartenfarbe, +StartNummer, +EndNummer)
+% fill all cards between start and end
+% fillDB(+color, +start number, +EndNummer)
 fillDB(Farbe, Start, End) :-
 	End2 is End + 1, 
 	addFact(Farbe, End2, Start).
 
-% initialisiere das Deck
-% initDeck(-Liste aller nun bekannten Karten)
+% initialize deck
+% initDeck(-list of all known cards)
 initDeck(List) :-
 	fillDB(herz, 1, 9),	
 	showDeck(List).
 
-% showDeck(-Liste aller nun bekannten Karten)
+% showDeck(-list of all known cards)
 showDeck(List) :- 
 	findall(X, card(_, X, _), List).
 
 
-% Beispiel für eine Datenstruktur
-% newPlayer(+Spielernummer, -Player Struktur)
-% player(Spielernummer, Ausspielfeld als Liste von Kartenstrukturen)
+% Example for a data structure
+% newPlayer(+player number, -Player structure)
 newPlayer(Num, player(Num, [])).
 
-%%%%%%%%%%% Alternative für eine Kartenbasis %%%%%%%%%%%%%%%
+%%%%%%%%%%% Alternative for deck - using array %%%%%%%%%%%%%%%
 
-% Kartenbasis mit Array - Vorteil, wenn mehrer Instanzen eines Typs nötig sind
-% oder für sortieren, und häufige Manipulationen
-
-% so gehts nicht !
-addCard(Deck, Farbe, Name, Deck2) :-
-	A = card(Farbe, Name, _),
-	append(Deck, [A], Deck2).
-% so gehts
 addCard2(Deck, Farbe, Name, Deck2) :-
 	card(Farbe, Name, X),
 	append(Deck, [card(Farbe, Name, X)], Deck2).
-% so gehts mit wiederverwendbarer Variable
+% variant
 addCard3(Deck, Farbe, Name, Deck2) :-
 	cardBuilder(Farbe, Name, C),
 	append(Deck, [C], Deck2).
-% ein Builder als Hilfskonstrukt
+% generator
 cardBuilder(Farbe, Name, card(Farbe, Name, X)) :-
 	card(Farbe, Name, X).
 
 
-%%%%%%%%%%%%%%%%%%% Spielaktionen %%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%% play actions %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%% Karten auspielen oder vom Deck "ziehen"
 
-% Eine Möglichkeit
-% drawCard(+Kartenfarbe, +Kartenname, -Kartenstruktur)
+% draw a card by color and name (for testing)
+% drawCard(+color, +name, -structure)
 drawCard(Farbe, Name, Card) :-
 	Card = card(Farbe, Name, _),
-	retract(Card). % retract instanziert auch intern
+	retract(Card). % retract do instance internaly
 
-% Zufallsziehen
-% drawCard(-Kartenstruktur)
+% random draw
+% drawCard(-structure)
 drawCard(Card) :-
 	random_between(1,14, Num), 
 	Card = card(_, _, Num),
 	retract(Card). 
 
-% Greife auf die Kartenpunkte der Struktur zu
-% cardPoints(+Farbe, +Name, -Points)
+% cardPoints(+color, +Name, -Points)
 cardPoints(Farbe, Name, Points) :-
 	card(Farbe, Name, Points).
 
 
-%%%% Karte auspielen
+%%%% play card
 
-%% Hier ist Player eine Zahl
-% playCard(+Spielernummer, +Kartenfarbe, +Kartenname, +Spielfeld vorher, -Spielfeld nachher)
+%% Here player is a number
 playCard(_, Farbe, Name, Field, Field2) :-
 	drawCard(Farbe, Name, Card), 
 	append(Field, [Card], Field2).
 
-%% Besser strukturiert
-% playCard(+Spielerstruktur, vorher, -Spielerstruktur nacher)
+
+% playCard(+player, -updated player)
 playCard(player(Num, Field), player(Num, Field2)) :-
 	drawCard(Card), 
 	append(Field, [Card], Field2), 
 	format("your draw ~w\n",  [Card]).
 
-%% Variante für den Interpreter
+%% command for Interpreter
 playCard(P1, P2, go) :-
 	playCard(P1, P2).
 
 
-%%%%%%%%%%%%%%%%%%%%% Gewinnregeln %%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%% winning rules %%%%%%%%%%%%%%%%%%
 
-%% Kartenauswertung
+%% Evaluation of cards
 
-% sumPoints(+Kartenstruktur, +Punktesumme vorher, -Punktesumme plus Kartenpunkte)
+% sumPoints(+card, +sum before, -sum plus card points)
 sumPoints(card(_,_,Point), Sum, Sum2) :-
 	Sum2 is Sum + Point.
 
 % Abbruchbedingung
 sumCards([], Sum, Sum).
-% sumCards(+Liste von Karten als Kartenstrukturen, +Punkte vorher, -Punkte summiert)
+% sumCards(+card list, +points before, -summized points)
 sumCards([C|Cards], Sum, Sum3) :-
 	sumPoints(C, Sum, Sum2),
 	sumCards(Cards, Sum2, Sum3).
-% sumCards(s(+Liste von Karten als Kartenstrukturen, -Summe der Punkte aller Karten)
+% sumCards(s(+card list, -sum of all card points)
 sumCards(Cards, Sum) :-
 	sumCards(Cards, 0, Sum).
 
 
-%%% Gewinnbedingungen
+%%% winning rules
 
-% Teste ob 21 überschritten ist
-% Distance ist im folgenden ein Abstand eines Punktwertes zu 21
+% test if 21 is crossed
+% distance is the distance to 21 from both directions
 
-% cardsTest(+Kartenliste, -Abstand zu 21 (ggf negativ))
+% cardsTest(+card list, -distance)
 cardsTest(Cards, Distance) :-
 	sumCards(Cards, Sum), 
 	Distance is 21 - Sum.
-% Test auf unter 21
+% test < 21
 cardsOk(Distance, ok) :-
 	Distance >= 0.
-% Test über 21
+% Test over 21
 cardsOk(Distance, loser) :-
 	Distance < 0.
 
-%%% Gewinnreglen
+%%% Rules
 
 winner( [], [], 0). 
 
@@ -180,40 +165,27 @@ winner([C|Cs1], [C2|Cs2], Winner) :-
 	cardsTest([C2|Cs2], Distance2),
 	winner(Distance1, Distance2, Winner).
 
-% Auswertung der Abstände zu 21 und daraus festzulegender Gewinner
-% Spieler 1 gewinnt, wenn er unter 21 ist und Spiele 2 nicht
+% Evaluation of distance to 21 for every player and determing winner
+% player 1 wins if <21 and player 2 not
 winner(Distance1, Distance2, 1) :-
 	cardsOk(Distance1, ok),
 	cardsOk(Distance2, loser). 
-% Spieler 2 gewinnt, wenn er unter 21 ist und Spieler 1 nicht	
+% player 2 wins if <21 and player1 not	
 winner(Distance1, Distance2, 2) :- 
 	cardsOk(Distance2, ok),
 	cardsOk(Distance1, loser). 
-% Spieler 1 gewinnt, wenn er näher an 21 ist
+% player 1 wins if closer to 21
 winner(Distance1, Distance2, 1) :-
 	Distance1 < Distance2.
-% Spieler 2 gewinnt, wenn er näher an 21 ist
+% player 2 wins if closer to 21
 winner(Distance1, Distance2, 2) :-
 	Distance1 > Distance2.
 
-% Kein Gewinner in allen anderen Fällen
+% no winner in all ather cases
 winner(_, _, 0).
 
 
-%%%%%%%%%%%%% simpler Interpreter für das Spiel %%%%%%%%%%%%%
-% dieses Prädikat startet das sehr simple Spiel mit der Eingabe 
-% "playGame()." in der Kommandozeile eines neu gestarteten SWI-Prolog.
-% Abwechselnd geben die Spieler ihre Kommandos ein (immer mit Punkt dahinter!)
-% mögliche Weiterentwicklungen:
-% in dieser simplen Variante werden Karten nur gelöscht.
-% es muss aber sichergestellt sein, dass das Ziehen einer Karte
-% immer eine Karte liefert, solange noch welche im Deck sind.
-% Dann könnte man Karten zugedeckt ziehen und aufdecken wie
-% im richtigen 17+4 usw.
-% Ausserdem sollte der Cut Operator benutzt werden, es sind 
-% Endlosschleifen möglich etc ;)
-% Was man auch verbessern kann: da die Wissensbasis direkt manipuliert wird, 
-% muss das Beispiel in einem neu gestarteten SWI-Prolog ausgeführt werden 
+%%%%%%%%%%%%% simpler Interpreter for the fame %%%%%%%%%%%%%
 %
 playGame(P1, P2) :-
 	initDeck(_), 
@@ -221,7 +193,7 @@ playGame(P1, P2) :-
 	newPlayer(2, P2).
 	%play(P1, P2, go).
 
-% A, P sind player strukturen, für aktiven und passiven Spieler
+% A, P sind player strukturen, active and passive player
 play(A, P, go) :-
 	A = player(Num, _),
 	format("Player ~d <playCard> or <stop> ", [Num] ), 
@@ -232,16 +204,16 @@ play(A, P, go) :-
 
 play(_, _, stop).
 
-% Kommando: Spielende und Gewinnermittlung
+% Kommando: game over
 stop(player(1, Feld1), player(2, Feld2), stop) :-
 	stateWinner(Feld1, Feld2).
-% falls der aktive Spieler Nr. 2 war
+% if active player was player 2
 stop(player(2, Feld2), player(1, Feld1), stop) :-
 	stateWinner(Feld1, Feld2).
 
-% +Feld1 Karten des Spieler 1 
-% +Feld2 Karten des Spieler 2
-% -Winner wird instanziert mit gewinnender Spielernummer
+% +Feld1 cards of player 1 
+% +Feld2 cards of player 2
+% -Winner hold the number of winning player
 stateWinner(Feld1, Feld2) :-
 	winner(Feld1, Feld2, Winner), 
 	format("The Winner is ~d\n", [Winner]).
@@ -251,7 +223,7 @@ stateWinner(Feld1, Feld2) :-
 do(stop, A, P, A, P, Finish) :- 
 	call(stop, A, P, Finish).
 
-% ziehe eine Karte und spiele sie aus:
+% draw card and play
 do(playCard, A, P, A2, P, Finish) :-
 	call(playCard, A, A2, Finish).
 
@@ -259,16 +231,11 @@ do(showDeck, A, P, A, P, go) :-
 	showDeck(L), 
 	format("Current Deck: ~p\n", [L]).
 
-% Achtung: man mache sich klar: 
-% dieses Prädikat wird nicht nur aufgerufen, wenn ein Kommando nicht erkannt wird
-% sondern auch, wenn etwas dazu führt, dass die Regel falsch ist - 
-% z.B. wenn eine playCard versucht eine schon gespielte Karte zu spielen und "ins leere greift"
-% siehe obiger Kommentar für Verbesserungen.
-
+% wrong command
 do(_, A, P, A, P, _) :-
 	format("Rubbisch, commands are <playCard> or <stop> \n").
 
-% Spielerwechsel: aktiver wird passiver und umgekehrt
+% turn: change active / passive player
 nextPlayer(player(1, F1), player(2, F2), player(2, F2), player(1, F1)).
 nextPlayer(player(2, F2), player(1, F1), player(1, F1), player(2, F2)).
 
