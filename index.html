@@ -20,14 +20,15 @@
 
 		// here are the Pengine handle functions
 		function handleCreate() {
-			pengine.ask('playGame(P1, P2)');
+			pengine.ask('playGame(P1, P2, Msg)');
 			// load some initial Tau Prolog code
 		}
 		function handleOutput(){
 			// store the answer into global variable for later analysis
 			panswer = this.data[0]["P1"];
+			pMsg = this. data[0]["Msg"];
 			// write output for control into html element
-			$("#pout").html(JSON.stringify(panswer));
+			$("#pout").html(JSON.stringify(pMsg));
 		}
 
 		// Callback needed for triggering and displaying answers of Tau prolog querys
@@ -113,6 +114,10 @@
 			),
 			parseList(Tail, Tail2).
 
+	</script>
+
+	<script id="nextTurn.pl" type="text/prolog">
+		nextPlayer(player(1, F1), player(2, F2), player(2, F2), player(1, F1)).
 	</script>
 
 	<title> Demo game Black Jack </title>

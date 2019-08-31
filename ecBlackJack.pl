@@ -11,7 +11,7 @@
 % License: MIT 
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- module(ecBlacJack, [playGame/2, do/6, showDeck/1]).
+:- module(ecBlacJack, [playGame/3, do/7, showDeck/1]).
 :- use_module(library(pengines)).
 
 :- dynamic card/3.
@@ -188,13 +188,15 @@ winner(_, _, 0).
 %%%%%%%%%%%%% simpler Interpreter for the fame %%%%%%%%%%%%%
 %
 % Init the game
-playGame(P1, P2) :-
+playGame(P1, P2, Msg) :-
 	initDeck(_), 
 	newPlayer(1, P1), 
-	newPlayer(2, P2).
-	%play(P1, P2, go).
+	newPlayer(2, P2),
+	format(atom(Msg), '~s', ["Game can start now"]).
+
 
 % A, P sind player strukturen, active and passive player
+% for use with the browser, this loop goes to tau prolog
 play(A, P, go) :-
 	A = player(Num, _),
 	format("Player ~d <playCard> or <stop> ", [Num] ), 
@@ -221,20 +223,21 @@ stateWinner(Feld1, Feld2) :-
 
 
 % nur player 1 
-do(stop, A, P, A, P, Finish) :- 
-	call(stop, A, P, Finish).
+% +A active player +P passive player -Finish finish flag
+do(stop, A, P, A, P, Finish, Msg) :- 
+	call(stop, A, P, Finish, Msg).
 
 % draw card and play
-do(playCard, A, P, A2, P, Finish) :-
-	call(playCard, A, A2, Finish).
+do(playCard, A, P, A2, P, Finish, Msg) :-
+	call(playCard, A, A2, Finish, Msg).
 
-do(showDeck, A, P, A, P, go) :-
+do(showDeck, A, P, A, P, go, Msg) :-
 	showDeck(L), 
-	format("Current Deck: ~p\n", [L]).
+	format(atom(Msg), 'Current Deck: ~p\n', [L]).
 
 % wrong command
-do(_, A, P, A, P, _) :-
-	format("Rubbisch, commands are <playCard> or <stop> \n").
+do(_, A, P, A, P, _, Msg) :-
+	format(atom(Msg), 'Rubbisch, commands are <playCard> or <stop> \n').
 
 % turn: change active / passive player
 nextPlayer(player(1, F1), player(2, F2), player(2, F2), player(1, F1)).
