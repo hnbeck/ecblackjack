@@ -187,6 +187,7 @@ winner(_, _, 0).
 
 %%%%%%%%%%%%% simpler Interpreter for the fame %%%%%%%%%%%%%
 %
+% Init the game
 playGame(P1, P2) :-
 	initDeck(_), 
 	newPlayer(1, P1), 
