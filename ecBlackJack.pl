@@ -11,7 +11,7 @@
 % License: MIT 
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- module(ecBlackJack, [playGame/3, do/7, showDeck/1]).
+:- module(ecBlackJack, [playGame/3, stop/4, showDeck/1]).
 :- use_module(library(pengines)).
 :- use_module(library(sandbox)).
 
@@ -49,15 +49,15 @@ addFact(Farbe, End, I) :-
 
 
 % fill all cards between start and end
-% fillDB(+color, +start number, +EndNummer)
-fillDB(Farbe, Start, End) :-
+% fillDeck(+color, +start number, +EndNummer)
+fillDeck(Farbe, Start, End) :-
 	End2 is End + 1, 
 	addFact(Farbe, End2, Start).
 
 % initialize deck
 % initDeck(-list of all known cards)
 initDeck(List) :-
-	fillDB(herz, 1, 9),	
+	fillDeck(herz, 1, 9),	
 	showDeck(List).
 
 % showDeck(-list of all known cards)
@@ -70,7 +70,7 @@ sandbox:safe_primitive(ecBlackJack:showDeck(_)).
 % newPlayer(+player number, -Player structure)
 newPlayer(Num, player(Num, [])).
 
-%%%%%%%%%%% Alternative for deck - using array %%%%%%%%%%%%%%%
+%%%%%%%%%%% Alternative for deck - using arrays and not the database %%%%%%%%%%%%%%%
 
 addCard2(Deck, Farbe, Name, Deck2) :-
 	card(Farbe, Name, X),
@@ -87,12 +87,6 @@ cardBuilder(Farbe, Name, card(Farbe, Name, X)) :-
 %%%%%%%%%%%%%%%%%%% play actions %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-% draw a card by color and name (for testing)
-% drawCard(+color, +name, -structure)
-%drawCard(Farbe, Name, Card) :-
-%	Card = card(Farbe, Name, _),
-%	retractall(Card). % retract do instance internaly
-
 % random draw
 % drawCard(-structure)
 drawCard(Card) :-
@@ -108,12 +102,6 @@ cardPoints(Farbe, Name, Points) :-
 
 
 %%%% play card
-
-%% Here player is a number
-playCard(_, Farbe, Name, Field, Field2, Msg) :-
-	drawCard(Farbe, Name, Card), 
-	append(Field, [Card], Field2).
-
 
 % playCard(+player, -updated player)
 playCard(player(Num, Field), player(Num, Field2), Msg) :-
@@ -200,18 +188,6 @@ playGame(P1, P2, Msg) :-
 	format(atom(Msg), '~s', ["Game can start now"]).
 
 
-% A, P sind player strukturen, active and passive player
-% for use with the browser, this loop goes to tau prolog
-%% play(A, P, go) :-
-%% 	A = player(Num, _),
-%% 	format("Player ~d <playCard> or <stop> ", [Num] ), 
-%% 	read(Command), 
-%% 	do(Command, A, P, A2, P2, Finish),
-%% 	nextPlayer(A2, P2, A3, P3),
-%% 	play(A3, P3, Finish).
-
-%% play(_, _, stop).
-
 % Kommando: game over
 stop(player(1, Feld1), player(2, Feld2), stop, Msg) :-
 	stateWinner(Feld1, Feld2, Msg).
@@ -229,16 +205,16 @@ stateWinner(Feld1, Feld2, Msg) :-
 
 % nur player 1 
 % +A active player +P passive player -Finish finish flag
-do(stop, A, P, A, P, Finish, Msg) :- 
-	call(stop, A, P, Finish, Msg).
+%do(stop, A, P, A, P, Finish, Msg) :- 
+%	call(stop, A, P, Finish, Msg).
 
 % draw card and play
-do(playCard, A, P, A2, P, Finish, Msg) :-
-	call(playCard, A, A2, Finish, Msg).
+%do(playCard, A, P, A2, P, Finish, Msg) :-
+%	call(playCard, A, A2, Finish, Msg).
 
-do(showDeck, A, P, A, P, go, Msg) :-
-	showDeck(L), 
-	format(atom(Msg), 'Current Deck: ~p\n', [L]).
+%do(showDeck, A, P, A, P, go, Msg) :-
+%	showDeck(L), 
+%	format(atom(Msg), 'Current Deck: ~p\n', [L]).
 
 % wrong command
 %do(_, A, P, A, P, _, Msg) :-
@@ -247,8 +223,8 @@ do(showDeck, A, P, A, P, go, Msg) :-
 % the do command is redunant by using with pengines
 % showDeck, playCard and stop will be called directly
 
-% turn: change active / passive player
-nextPlayer(player(1, F1), player(2, F2), player(2, F2), player(1, F1)).
-nextPlayer(player(2, F2), player(1, F1), player(1, F1), player(2, F2)).
+%% this is also done in Tau Prolog now
+%nextPlayer(player(1, F1), player(2, F2), player(2, F2), player(1, F1)).
+%nextPlayer(player(2, F2), player(1, F1), player(1, F1), player(2, F2)).
 
 % Call

@@ -28,12 +28,19 @@
 		}
 		function handleOutput(){
 			// store the answer into global variable for later analysis
+			// in future should be more intelligent. P1 P2 must not be there always
 			pplayer1 = this.data[0]["P1"];
 			pplayer2 = this.data[0]["P2"];
 			pMsg = this. data[0]["Msg"];
 			// write output for control into html element
 			$("#pout").append(JSON.stringify(pMsg));
 			$("#pout").append("<br>");
+			// now bring the answer terms into Tau Prolog
+			// we have 2 global JS objects pplayer1 and pplayer2 containing the answer
+			session.query("analyse(pplayer1, Player), updatePlayer(Player).");
+			session.answer(printAnswer);
+			session.query("analyse(pplayer2, Player), updatePlayer(Player).");
+			session.answer(printAnswer);
 
 		}
 
@@ -44,26 +51,33 @@
 			console.log(answer);
 		}
 
-		function analyse() {
-			session.query("analyse(pplayer1, Player), updatePlayer(Player).");
-			session.answer(printAnswer);
-			session.query("analyse(pplayer2, Player), updatePlayer(Player).");
-			session.answer(printAnswer);
-		}
 		function test() {
 			session.query("fact(A,B), writeHTML(fact(A,disc), String).");
 			session.answer(printAnswer);
 		}
 		function gameturn(flag) {
-			session.query("player(1, A), writeHTML(player(1,A), _).");
-			session.answer(); 
-			var p1 = $("#Tauhtml").text();
-			session.query("player(2, A), writeHTML(player(2,A), _).");
-			session.answer(); 
-			var p2 = $("#Tauhtml").text();
-			var query = 'do(stop, ' + p1 + ',' + p2 + ', P1, P2, Flag, Msg)';
+			var players = buildQueryArg();
+			var query = 'do(stop, ' + players[0] + ',' + players[1] + ', P1, P2, Flag, Msg)';
 			console.log("Query will be: " + query)
 			pengine.ask(query);
+		}
+		function gamestop() {
+			var players = buildQueryArg();
+			var query = 'stop('+ players[0] + ',' + players[1] + ', _,  Msg)';
+			console.log("Query will be: " + query);
+			 $("#btplay").prop('disabled', true);
+			 $("#btplay").css('background-color','white');
+			pengine.ask(query);
+
+		}
+		function buildQueryArg(p) {
+			session.query("player(1, A), writeHTML(player(1,A), _).");
+			session.answer(); 
+			p1 = $("#Tauhtml").text();
+			session.query("player(2, A), writeHTML(player(2,A), _).");
+			session.answer(); 
+			p2 = $("#Tauhtml").text();
+			return [p1, p2];
 		}
 
 	</script>
@@ -161,12 +175,12 @@
 		</p>
 		Output for Tau Prolog queries. Output is done via callback of the pl.answer function of Tau Prolog. Click <a href="javascript:test()"> here </a> for test
 		</p>
-		<button type="button" id="btplay" onclick="javascript:gameturn(1)" style="background-color:yellow; height:40px">Play Card</button> 
-		<button type="button" id="btstop" onclick="javascript:gameturn(0)" style="background-color:red; height:40px">Stop</button>
+		<button type="button" id="btplay" onclick="javascript:gameturn()" style="background-color:yellow; height:40px">Play Card</button> 
+		<button type="button" id="btstop" onclick="javascript:gamestop()" style="background-color:red; height:40px">Stop</button>
 		</p>
 		<div style="padding:20px; border-color:black; background-color: lightblue;" id="Tauout"></div>
 		</p>
-		Output of Tau terms. Tau Terms are stringifyd over html element. Clicking <a href="javascript:analyse()"> here </a> would parse the Pengine output and write it into html stream.
+		Output of Tau terms. Tau Terms are stringifyd over html element. 
 		</p>
 		<div style="padding:20px; border-color:black; background-color: lightgreen;" id="Tauhtml">Tau terms</div>
 
