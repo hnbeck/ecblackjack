@@ -12,7 +12,7 @@
 	<script type="text/javascript">
 		var pplayer1;
 		var pplayer2;  // the answer of pengine request is stored globally to make things easy
-
+		var session = pl.create(1000);
 		// initate a Pengine 
 		var pengine = new Pengine({
 			oncreate: handleCreate, 
@@ -22,6 +22,8 @@
 		// here are the Pengine handle functions
 		function handleCreate() {
 			pengine.ask('playGame(P1, P2, Msg)');
+			session.consult("htmlIO.pl");
+			session.consult("analyse.pl");
 			// load some initial Tau Prolog code
 		}
 		function handleOutput(){
@@ -43,19 +45,25 @@
 		}
 
 		function analyse() {
-			var session = pl.create(1000);
-			session.consult("htmlIO.pl");
-			session.consult("analyse.pl");
 			session.query("analyse(pplayer1, Player), updatePlayer(Player).");
 			session.answer(printAnswer);
 			session.query("analyse(pplayer2, Player), updatePlayer(Player).");
 			session.answer(printAnswer);
 		}
-			function test() {
-			var session = pl.create(1000);
-			session.consult("htmlIO.pl");
+		function test() {
 			session.query("fact(A,B), writeHTML(fact(A,disc), String).");
 			session.answer(printAnswer);
+		}
+		function gameturn(flag) {
+			session.query("player(1, A), writeHTML(player(1,A), _).");
+			session.answer(); 
+			var p1 = $("#Tauhtml").text();
+			session.query("player(2, A), writeHTML(player(2,A), _).");
+			session.answer(); 
+			var p2 = $("#Tauhtml").text();
+			var query = 'do(stop, ' + p1 + ',' + p2 + ', P1, P2, Flag, Msg)';
+			console.log("Query will be: " + query)
+			pengine.ask(query);
 		}
 
 	</script>
@@ -152,6 +160,9 @@
 		<div style="padding:20px; border-color:blue; background-color: lightgray;" id="pout"></div>
 		</p>
 		Output for Tau Prolog queries. Output is done via callback of the pl.answer function of Tau Prolog. Click <a href="javascript:test()"> here </a> for test
+		</p>
+		<button type="button" id="btplay" onclick="javascript:gameturn(1)" style="background-color:yellow; height:40px">Play Card</button> 
+		<button type="button" id="btstop" onclick="javascript:gameturn(0)" style="background-color:red; height:40px">Stop</button>
 		</p>
 		<div style="padding:20px; border-color:black; background-color: lightblue;" id="Tauout"></div>
 		</p>

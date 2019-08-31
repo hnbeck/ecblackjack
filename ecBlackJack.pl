@@ -11,11 +11,14 @@
 % License: MIT 
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- module(ecBlacJack, [playGame/3, do/7, showDeck/1]).
+:- module(ecBlackJack, [playGame/3, do/7, showDeck/1]).
 :- use_module(library(pengines)).
+:- use_module(library(sandbox)).
 
 :- dynamic card/3.
 
+:- multifile sandbox:safe_primitive/1.
+% sandbox:safe_primitive(ecBlackJack:drawCard(_)).
 
 % card deck
 card(herz, 10, 10).
@@ -86,16 +89,16 @@ cardBuilder(Farbe, Name, card(Farbe, Name, X)) :-
 
 % draw a card by color and name (for testing)
 % drawCard(+color, +name, -structure)
-drawCard(Farbe, Name, Card) :-
-	Card = card(Farbe, Name, _),
-	retract(Card). % retract do instance internaly
+%drawCard(Farbe, Name, Card) :-
+%	Card = card(Farbe, Name, _),
+%	retractall(Card). % retract do instance internaly
 
 % random draw
 % drawCard(-structure)
 drawCard(Card) :-
 	random_between(1,14, Num), 
-	Card = card(_, _, Num),
-	retract(Card). 
+	Card = card(_, _, Num).
+	%retractall(Card). 
 
 % cardPoints(+color, +Name, -Points)
 cardPoints(Farbe, Name, Points) :-
@@ -105,20 +108,20 @@ cardPoints(Farbe, Name, Points) :-
 %%%% play card
 
 %% Here player is a number
-playCard(_, Farbe, Name, Field, Field2) :-
+playCard(_, Farbe, Name, Field, Field2, Msg) :-
 	drawCard(Farbe, Name, Card), 
 	append(Field, [Card], Field2).
 
 
 % playCard(+player, -updated player)
-playCard(player(Num, Field), player(Num, Field2)) :-
+playCard(player(Num, Field), player(Num, Field2), Msg) :-
 	drawCard(Card), 
 	append(Field, [Card], Field2), 
-	format("your draw ~w\n",  [Card]).
+	format(atom(Msg), "your draw ~w\n",  [Card]).
 
 %% command for Interpreter
-playCard(P1, P2, go) :-
-	playCard(P1, P2).
+playCard(P1, P2, go, Msg) :-
+	playCard(P1, P2, Msg).
 
 
 %%%%%%%%%%%%%%%%%%%%% winning rules %%%%%%%%%%%%%%%%%%
@@ -197,29 +200,29 @@ playGame(P1, P2, Msg) :-
 
 % A, P sind player strukturen, active and passive player
 % for use with the browser, this loop goes to tau prolog
-play(A, P, go) :-
-	A = player(Num, _),
-	format("Player ~d <playCard> or <stop> ", [Num] ), 
-	read(Command), 
-	do(Command, A, P, A2, P2, Finish),
-	nextPlayer(A2, P2, A3, P3),
-	play(A3, P3, Finish).
+%% play(A, P, go) :-
+%% 	A = player(Num, _),
+%% 	format("Player ~d <playCard> or <stop> ", [Num] ), 
+%% 	read(Command), 
+%% 	do(Command, A, P, A2, P2, Finish),
+%% 	nextPlayer(A2, P2, A3, P3),
+%% 	play(A3, P3, Finish).
 
-play(_, _, stop).
+%% play(_, _, stop).
 
 % Kommando: game over
-stop(player(1, Feld1), player(2, Feld2), stop) :-
-	stateWinner(Feld1, Feld2).
+stop(player(1, Feld1), player(2, Feld2), stop, Msg) :-
+	stateWinner(Feld1, Feld2, Msg).
 % if active player was player 2
-stop(player(2, Feld2), player(1, Feld1), stop) :-
-	stateWinner(Feld1, Feld2).
+stop(player(2, Feld2), player(1, Feld1), stop, Msg) :-
+	stateWinner(Feld1, Feld2, Msg).
 
 % +Feld1 cards of player 1 
 % +Feld2 cards of player 2
 % -Winner hold the number of winning player
-stateWinner(Feld1, Feld2) :-
+stateWinner(Feld1, Feld2, Msg) :-
 	winner(Feld1, Feld2, Winner), 
-	format("The Winner is ~d\n", [Winner]).
+	format(atom(Msg), "The Winner is ~d\n", [Winner]).
 
 
 % nur player 1 
@@ -228,16 +231,16 @@ do(stop, A, P, A, P, Finish, Msg) :-
 	call(stop, A, P, Finish, Msg).
 
 % draw card and play
-do(playCard, A, P, A2, P, Finish, Msg) :-
-	call(playCard, A, A2, Finish, Msg).
+%do(playCard, A, P, A2, P, Finish, Msg) :-
+%	call(playCard, A, A2, Finish, Msg).
 
 do(showDeck, A, P, A, P, go, Msg) :-
 	showDeck(L), 
 	format(atom(Msg), 'Current Deck: ~p\n', [L]).
 
 % wrong command
-do(_, A, P, A, P, _, Msg) :-
-	format(atom(Msg), 'Rubbisch, commands are <playCard> or <stop> \n').
+%do(_, A, P, A, P, _, Msg) :-
+%	format(atom(Msg), 'Rubbisch, commands are <playCard> or <stop> \n').
 
 % turn: change active / passive player
 nextPlayer(player(1, F1), player(2, F2), player(2, F2), player(1, F1)).
