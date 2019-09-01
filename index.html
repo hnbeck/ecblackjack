@@ -5,6 +5,8 @@
 <!DOCTYPE html >
 <html>
 <head>
+	 <link rel="stylesheet" href="/web/bjstyles.css">
+
 	<script src="/web/jquery-1.11.3.min.js"  type="text/javascript"></script>
 	<script src="/web/tau-prolog.js" type="text/javascript"></script>
 	<script src="/web/pengines.js" type="text/javascript"></script>
@@ -12,6 +14,8 @@
 	<script type="text/javascript">
 		var pplayer1;
 		var pplayer2;  // the answer of pengine request is stored globally to make things easy
+		
+		// initiate a TauProlog session
 		var session = pl.create(1000);
 		// initate a Pengine 
 		var pengine = new Pengine({
@@ -158,31 +162,34 @@
 </head>
 <body>
 	
-	
-	<div style="width:800px; margin-left: 10%; margin-top: 10%">
+	<div id="playarea">
 
 		<h1>Demo game Black Jack</h1>
 		</p>
 		<h3>This simple game is intended as template for projects using SWI Prolog, its Pengines library and Tau-Prolog.</h3>
 		<p>
 		If the page is loaded, a pengine query is triggerd (playGame(P1, P2)). This initialise the game and set up both players P1 and P2.  </p>
-		<p> The test below queries for a hard coded predicate <i>fact(world, sphere)</i>.</p>
-
+		</p>
+		<button type="button" id="btplay" onclick="javascript:gameturn()" >Play Card</button> 
+		<button type="button" id="btstop" onclick="javascript:gamestop()">Stop</button>
+		</p>
 		</p>
 		Output of Pengine
 		</p>
-		<div style="padding:20px; border-color:blue; background-color: lightgray;" id="pout"></div>
+		<div id="pout"></div>
+		<hr>
+	</div>
+	<div id="testblock">
+		<h4> Test / Debug area </h4>
+		<p> The test below queries for a hard coded predicate .</p>
+
+		Output for Tau Prolog queries. Output is done via callback of the pl.answer function of Tau Prolog. Click <a href="javascript:test()"> here </a> for test. The test asks for a hard coded fact <i>fact(world, sphere)</i> by triggering the query <i>"fact(A,B), writeHTML(fact(A,disc), String).</i>
 		</p>
-		Output for Tau Prolog queries. Output is done via callback of the pl.answer function of Tau Prolog. Click <a href="javascript:test()"> here </a> for test
-		</p>
-		<button type="button" id="btplay" onclick="javascript:gameturn()" style="background-color:yellow; height:40px">Play Card</button> 
-		<button type="button" id="btstop" onclick="javascript:gamestop()" style="background-color:red; height:40px">Stop</button>
-		</p>
-		<div style="padding:20px; border-color:black; background-color: lightblue;" id="Tauout"></div>
+		<div id="Tauout"></div>
 		</p>
 		Output of Tau terms. Tau Terms are stringifyd over html element. 
 		</p>
-		<div style="padding:20px; border-color:black; background-color: lightgreen;" id="Tauhtml">Tau terms</div>
+		<div id="Tauhtml">Tau terms</div>
 
 	</div>
 </p>

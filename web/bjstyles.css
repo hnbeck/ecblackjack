@@ -1,0 +1,46 @@
+
+#testblock {
+	width:600px; 
+	margin-left: auto; 
+	margin-right: auto;
+	margin-top: 20px;
+	flex-flow: center; 
+}
+#playarea {
+	width:800px; 
+	margin-left: auto; 
+	margin-right: auto;
+	margin-top: 5px;
+	margin-bottom: 10px;
+}
+
+#pout {
+	padding:20px; 
+	border-color:blue; 
+	background-color: lightgray;
+}
+
+#Tauout {
+	padding:20px; 
+	border-color:black; 
+	background-color: lightblue;
+}
+
+#Tauhtml {
+	padding:20px; 
+	border-color:black; 
+	background-color: lightgreen;
+}
+
+button {
+	width : 100px; 
+	height : 40px;
+}
+
+#btplay {
+	background-color:yellow;
+}
+
+#btstop {
+	background-color:red;
+}
