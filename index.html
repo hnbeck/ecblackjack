@@ -15,12 +15,14 @@
 		var pplayer1;
 		var pplayer2;  // the answer of pengine request is stored globally to make things easy
 		
+		var roundNo  = 0; 
 		// initiate a TauProlog session
 		var session = pl.create(1000);
 		// initate a Pengine 
 		var pengine = new Pengine({
 			oncreate: handleCreate, 
-			onsuccess: handleOutput
+			onsuccess: handleOutput,
+			destroy: false
 		}); 
 
 		// here are the Pengine handle functions
@@ -33,12 +35,19 @@
 		function handleOutput(){
 			// store the answer into global variable for later analysis
 			// in future should be more intelligent. P1 P2 must not be there always
+			roundNo = roundNo + 1; 
+
 			pplayer1 = this.data[0]["P1"];
 			pplayer2 = this.data[0]["P2"];
 			pMsg = this. data[0]["Msg"];
+			pList = this.data[0]["List"];
 			// write output for control into html element
 			$("#pout").append(JSON.stringify(pMsg));
 			$("#pout").append("<br>");
+			$("#pout").append(JSON.stringify(pList));
+			$("#pout").append("<br>"); 
+			$("#pout").append(playerString());
+			$("#pout").append("<br>"); 
 			// now bring the answer terms into Tau Prolog
 			// we have 2 global JS objects pplayer1 and pplayer2 containing the answer
 			session.query("analyse(pplayer1, Player), updatePlayer(Player).");
@@ -59,29 +68,41 @@
 			session.query("fact(A,B), writeHTML(fact(A,disc), String).");
 			session.answer(printAnswer);
 		}
-		function gameturn(flag) {
+		function gameturn() {
 			var players = buildQueryArg();
-			var query = 'do(stop, ' + players[0] + ',' + players[1] + ', P1, P2, Flag, Msg)';
+			var query = 'playCard('+ players[1] + ',' + players[2] + ', P1, P2, Flag,  Msg)';
+			//var query = 'showDeck(List)'
 			console.log("Query will be: " + query)
 			pengine.ask(query);
+
 		}
 		function gamestop() {
 			var players = buildQueryArg();
-			var query = 'stop('+ players[0] + ',' + players[1] + ', _,  Msg)';
+			var query = 'stop('+ players[1] + ',' + players[2] + ', _,  Msg)';
 			console.log("Query will be: " + query);
 			 $("#btplay").prop('disabled', true);
 			 $("#btplay").css('background-color','white');
 			pengine.ask(query);
 
 		}
-		function buildQueryArg(p) {
+		function buildQueryArg() {
 			session.query("player(1, A), writeHTML(player(1,A), _).");
 			session.answer(); 
 			p1 = $("#Tauhtml").text();
 			session.query("player(2, A), writeHTML(player(2,A), _).");
 			session.answer(); 
 			p2 = $("#Tauhtml").text();
-			return [p1, p2];
+			if (roundNo % 2 == 0) 
+				return [1, p2, p1] 
+			else 
+				return [2, p1, p2];
+		}
+
+		function playerString(){
+			if (roundNo % 2 == 0) 
+				return "Player 2, your turn"; 
+			else 
+				return "Player 1, your turn"; 
 		}
 
 	</script>
@@ -109,6 +130,8 @@
 			open(HTML, read, Stream), 
 			read(Stream, Term),
 			clode(Stream).
+
+		nextPlayer(player(1, F1), player(2, F2), player(2, F2), player(1, F1)).
 
 	</script>
 
@@ -153,10 +176,6 @@
 		
 	</script>
 
-	<script id="nextTurn.pl" type="text/prolog">
-		nextPlayer(player(1, F1), player(2, F2), player(2, F2), player(1, F1)).
-	</script>
-
 	<title> Demo game Black Jack </title>
 	
 </head>
@@ -183,13 +202,14 @@
 		<h4> Test / Debug area </h4>
 		<p> The test below queries for a hard coded predicate .</p>
 
-		Output for Tau Prolog queries. Output is done via callback of the pl.answer function of Tau Prolog. Click <a href="javascript:test()"> here </a> for test. The test asks for a hard coded fact <i>fact(world, sphere)</i> by triggering the query <i>"fact(A,B), writeHTML(fact(A,disc), String).</i>
-		</p>
-		<div id="Tauout"></div>
-		</p>
-		Output of Tau terms. Tau Terms are stringifyd over html element. 
-		</p>
-		<div id="Tauhtml">Tau terms</div>
+		 Click <a href="javascript:test()"> here </a> for test. The test asks for a hard coded fact <i>fact(world, sphere)</i> by triggering the query <i>"fact(A,B), writeHTML(fact(A,disc), String).</i><br>
+		 Output for Tau Prolog queries. Output is done via callback of the pl.answer function of Tau Prolog.
+		 </p>
+		 <div id="Tauout"></div>
+		 </p>
+		 Output of Tau terms. Tau Terms are stringified over html element. 
+		 </p>
+		 <div id="Tauhtml">Tau terms</div>
 
 	</div>
 </p>

@@ -11,7 +11,7 @@
 % License: MIT 
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- module(ecBlackJack, [playGame/3, stop/4, showDeck/1]).
+:- module(ecBlackJack, [playGame/3, stop/4, showDeck/1, playCard/6]).
 :- use_module(library(pengines)).
 :- use_module(library(sandbox)).
 
@@ -89,10 +89,10 @@ cardBuilder(Farbe, Name, card(Farbe, Name, X)) :-
 
 % random draw
 % drawCard(-structure)
-drawCard(Card) :-
+drawCard(card(A, B, Num)) :-
 	random_between(1,14, Num), 
-	Card = card(_, _, Num),
-	retractall(Card). 
+	card(A, B, Num),
+	retractall(card(A,B,Num)). 
 
 sandbox:safe_primitive(ecBlackJack:drawCard(_)).
 
@@ -110,8 +110,8 @@ playCard(player(Num, Field), player(Num, Field2), Msg) :-
 	format(atom(Msg), "your draw ~w\n",  [Card]).
 
 %% command for Interpreter
-playCard(P1, P2, go, Msg) :-
-	playCard(P1, P2, Msg).
+playCard(PA1, PP, PA2, PP,  go, Msg) :-
+	playCard(PA1, PA2, Msg).
 
 
 %%%%%%%%%%%%%%%%%%%%% winning rules %%%%%%%%%%%%%%%%%%
