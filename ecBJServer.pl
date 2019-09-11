@@ -35,6 +35,7 @@ http_json:json_type('text/javascript').
 http_json:json_type('text/x-javascript').
 http_json:json_type('text/x-json').
 http_json:json_type('text/x-prolog').
+http_json:json_type('text/prolog').
 
 http:location(files, '/web', []).
 

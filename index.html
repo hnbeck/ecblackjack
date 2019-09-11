@@ -5,6 +5,7 @@
 <!DOCTYPE html >
 <html>
 <head>
+	<meta charset="UTF-8" />
 	 <link rel="stylesheet" href="/web/bjstyles.css">
 
 	<script src="/web/jquery-1.11.3.min.js"  type="text/javascript"></script>
@@ -14,10 +15,11 @@
 	<script type="text/javascript">
 		var pplayer1;
 		var pplayer2;  // the answer of pengine request is stored globally to make things easy
-		
+		var result; 
 		var roundNo  = 0; 
+
 		// initiate a TauProlog session
-		var session = pl.create(1000);
+		var session = pl.create(10000);
 		// initate a Pengine 
 		var pengine = new Pengine({
 			oncreate: handleCreate, 
@@ -27,34 +29,43 @@
 
 		// here are the Pengine handle functions
 		function handleCreate() {
+			 $.get("/web/webProlog.pl", function(data) {
+				session.consult(data);
+		 	});
 			pengine.ask('playGame(P1, P2, Msg)');
-			session.consult("htmlIO.pl");
-			session.consult("analyse.pl");
+			
 			// load some initial Tau Prolog code
 		}
+		
 		function handleOutput(){
 			// store the answer into global variable for later analysis
 			// in future should be more intelligent. P1 P2 must not be there always
 			roundNo = roundNo + 1; 
-
-			pplayer1 = this.data[0]["P1"];
-			pplayer2 = this.data[0]["P2"];
-			pMsg = this. data[0]["Msg"];
-			pList = this.data[0]["List"];
+			var resList = []; 
+			for (x in this.data[0])
+			{
+				// properties must be lowercase later for Tau Prolog
+				this.data[0][x.toLowerCase()] = this.data[0][x];
+				this.data[0][x].delete;
+				resList.push(x.toLowerCase());
+			}
+			result = this.data[0];
+			console.log(result);
+			
 			// write output for control into html element
-			$("#pout").append(JSON.stringify(pMsg));
-			$("#pout").append("<br>");
-			$("#pout").append(JSON.stringify(pList));
-			$("#pout").append("<br>"); 
-			$("#pout").append(playerString());
-			$("#pout").append("<br>"); 
+			// 	$("#pout").append("<br>");
+			// $("#pout").append(JSON.stringify(pMsg));
+			// $("#pout").append("<br>");
+			// $("#pout").append(JSON.stringify(pList));
+			// $("#pout").append("<br>"); 
+			// $("#pout").append(playerString());
+			// $("#pout").append("<br>"); 
 			// now bring the answer terms into Tau Prolog
 			// we have 2 global JS objects pplayer1 and pplayer2 containing the answer
-			session.query("analyse(pplayer1, Player), updatePlayer(Player).");
+			//$("#pout").append("Query<br>"); 
+			//$("#pout").append("takeResult(["+ resList.toString() + "], result, Term)."); 
+			session.query("takeResult(["+ resList.toString() + "], result, Term).");
 			session.answer(printAnswer);
-			session.query("analyse(pplayer2, Player), updatePlayer(Player).");
-			session.answer(printAnswer);
-
 		}
 
 		// Callback needed for triggering and displaying answers of Tau prolog querys
@@ -86,10 +97,10 @@
 
 		}
 		function buildQueryArg() {
-			session.query("player(1, A), writeHTML(player(1,A), _).");
+			session.query("fact(p1, P1), writeHTML('Tauhtml', P1, _).");
 			session.answer(); 
 			p1 = $("#Tauhtml").text();
-			session.query("player(2, A), writeHTML(player(2,A), _).");
+			session.query("fact(p2, P2), writeHTML('Tauhtml', P2, _).");
 			session.answer(); 
 			p2 = $("#Tauhtml").text();
 			if (roundNo % 2 == 0) 
@@ -107,74 +118,6 @@
 
 	</script>
 
-	<!-- Here some Tau Prolog scripts -->
-
-	<script id="htmlIO.pl" type="text/prolog">
-		
-		:- use_module(library(dom)).
-
-		fact(world, sphere).
-
-		% +Term : a Tau Prolog term
-		% -HMTLString : the term as String
-		writeHTML(Term, HTMLString) :-
-			get_by_id('Tauhtml', HTML),
-			open(HTML, write, Stream), 
-			write(Stream, Term),
-			close(Stream),
-			get_html(HTML, HTMLString).
-
-		% -Term : a Tau Prolog Term
-		readHTML(Term) :-
-			get_by_id('TauInput', HTML),
-			open(HTML, read, Stream), 
-			read(Stream, Term),
-			clode(Stream).
-
-		nextPlayer(player(1, F1), player(2, F2), player(2, F2), player(1, F1)).
-
-	</script>
-
-	<script id="analyse.pl" type="text/prolog">
-		:- use_module(library(dom)).
-		:- use_module(library(js)).
-		:- use_module(library(lists)).
-
-		% +JSObjectID: an reference to a JS object containing the answer of a Pengine query
-		% -TauTerm: the Pengine answer as Tau Prolog Term
-		analyse(JSObjectID, TauTerm) :-
-			prop('Array', Array),
-			prop(JSObjectID, JSObject),
-			parseTerm(JSObject, TauTerm),
-			writeHTML(TauTerm, String),
-			write(String).
-
-		parseTerm(Elem, _) :- var(Elem).
-
-		parseTerm(JSObject, TauTerm) :-
-			prop(JSObject, args, ArgList),
-			prop(JSObject, functor, Functor),
-			parseList(ArgList, TermList),
-			append([Functor], TermList, TermList2),
-			TauTerm =.. TermList2.
-
-		parseList([], []).
-
-		parseList([Head | Tail ], [Head2 | Tail2]) :-
-			(is_list(Head) -> 
-				parseList(Head, Head2);
-				(atomic(Head) -> 
-					Head2 = Head; 
-					parseTerm(Head, Head2)
-				)
-			),
-			parseList(Tail, Tail2).
-
-		updatePlayer(player(N, A)) :-
-			retractall(player(N, _)),
-			asserta(player(N, A)).
-		
-	</script>
 
 	<title> Demo game Black Jack </title>
 	

@@ -30,6 +30,7 @@
 	padding:20px; 
 	border-color:black; 
 	background-color: lightgreen;
+	display: none; 
 }
 
 button {
