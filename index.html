@@ -13,28 +13,36 @@
 	<script src="/web/pengines.js" type="text/javascript"></script>
 
 	<script type="text/javascript">
-		var pplayer1;
-		var pplayer2;  // the answer of pengine request is stored globally to make things easy
 		var result; 
 		var roundNo  = 0; 
+		var pengine; 
+		var session = pl.create(1000);
+
+		$(document).ready(init_system());
 
 		// initiate a TauProlog session
-		var session = pl.create(10000);
-		// initate a Pengine 
-		var pengine = new Pengine({
-			oncreate: handleCreate, 
-			onsuccess: handleOutput,
-			destroy: false
-		}); 
-
-		// here are the Pengine handle functions
-		function handleCreate() {
-			 $.get("/web/webProlog.pl", function(data) {
+		
+		function init_system() {
+			$.get("/web/webProlog.pl", function(data) {
 				session.consult(data);
 		 	});
-			pengine.ask('playGame(P1, P2, Msg)');
-			
-			// load some initial Tau Prolog code
+
+			// Tau is ready, now pengine
+			pengine = new Pengine({
+				oncreate: handleCreate, 
+				onsuccess: handleOutput,
+				destroy: false
+			}); 
+
+			console.log('Init done');
+		}
+		
+		// here are the Pengine handle functions
+		function handleCreate() {
+			session.query("init.");
+			session.answer(printAnswer);
+			// call the init of the game
+			pengine.ask('playGame(PA2, PP2, Msg)');
 		}
 		
 		function handleOutput(){
@@ -52,26 +60,14 @@
 			result = this.data[0];
 			console.log(result);
 			
-			// write output for control into html element
-			// 	$("#pout").append("<br>");
-			// $("#pout").append(JSON.stringify(pMsg));
-			// $("#pout").append("<br>");
-			// $("#pout").append(JSON.stringify(pList));
-			// $("#pout").append("<br>"); 
-			// $("#pout").append(playerString());
-			// $("#pout").append("<br>"); 
-			// now bring the answer terms into Tau Prolog
-			// we have 2 global JS objects pplayer1 and pplayer2 containing the answer
-			//$("#pout").append("Query<br>"); 
-			//$("#pout").append("takeResult(["+ resList.toString() + "], result, Term)."); 
 			session.query("takeResult(["+ resList.toString() + "], result, Term).");
 			session.answer(printAnswer);
 		}
 
 		// Callback needed for triggering and displaying answers of Tau prolog querys
 		var printAnswer = function(answer){
-			$("#Tauout").append(pl.format_answer(answer));
-			$("#Tauout").append("<br>");
+			//$("#Tauout").append(pl.format_answer(answer));
+			//$("#Tauout").append("<br>");
 			console.log(answer);
 		}
 
@@ -79,24 +75,28 @@
 			session.query("fact(A,B), writeHTML(fact(A,disc), String).");
 			session.answer(printAnswer);
 		}
+
 		function gameturn() {
-			var players = buildQueryArg();
-			var query = 'playCard('+ players[1] + ',' + players[2] + ', P1, P2, Flag,  Msg)';
+			//var players = buildQueryArg();
+			//var query = 'playCard('+ players[1] + ',' + players[2] + ', P1, P2, Flag,  Msg)';
+			var query = $("#Tauhtml").text();
 			//var query = 'showDeck(List)'
 			console.log("Query will be: " + query)
 			pengine.ask(query);
 
 		}
+
 		function gamestop() {
-			var players = buildQueryArg();
-			var query = 'stop('+ players[1] + ',' + players[2] + ', _,  Msg)';
+			//var players = buildQueryArg();
+			//var query = 'stop('+ players[1] + ',' + players[2] + ', _,  Msg)';
+			var query = $("#Tauhtml").text();
 			console.log("Query will be: " + query);
-			 $("#btplay").prop('disabled', true);
-			 $("#btplay").css('background-color','white');
+			// $("#btplay").prop('disabled', true);
+			// $("#btplay").css('background-color','white');
 			pengine.ask(query);
 
 		}
-		function buildQueryArg() {
+		/*function buildQueryArg() {
 			session.query("fact(p1, P1), writeHTML('Tauhtml', P1, _).");
 			session.answer(); 
 			p1 = $("#Tauhtml").text();
@@ -107,14 +107,14 @@
 				return [1, p2, p1] 
 			else 
 				return [2, p1, p2];
-		}
+		}*/
 
-		function playerString(){
+		/*function playerString(){
 			if (roundNo % 2 == 0) 
 				return "Player 2, your turn"; 
 			else 
 				return "Player 1, your turn"; 
-		}
+		}*/
 
 	</script>
 
@@ -132,8 +132,8 @@
 		<p>
 		If the page is loaded, a pengine query is triggerd (playGame(P1, P2)). This initialise the game and set up both players P1 and P2.  </p>
 		</p>
-		<button type="button" id="btplay" onclick="javascript:gameturn()" >Play Card</button> 
-		<button type="button" id="btstop" onclick="javascript:gamestop()">Stop</button>
+		<button type="button" id="btplay"  >Play Card</button> 
+		<button type="button" id="btstop" >Stop</button>
 		</p>
 		</p>
 		Output of Pengine
@@ -149,8 +149,6 @@
 		 Output for Tau Prolog queries. Output is done via callback of the pl.answer function of Tau Prolog.
 		 </p>
 		 <div id="Tauout"></div>
-		 </p>
-		 Output of Tau terms. Tau Terms are stringified over html element. 
 		 </p>
 		 <div id="Tauhtml">Tau terms</div>
 
