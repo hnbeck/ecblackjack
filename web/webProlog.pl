@@ -1,111 +1,124 @@
-	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-	%
-	% Tau Prolog code for the Prolog part in the browser
-	% 
-	%  Autor: Hans N. Beck (c)
-	%
-	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-	:- use_module(library(dom)).
-	:- use_module(library(js)).
-	:- use_module(library(lists)). 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Tau Prolog code for the Prolog part in the browser
+% 
+%  Autor: Hans N. Beck (c)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-	init :-
-		get_by_id('btplay', Play),
-		get_by_id('btstop', Stop),
-		bind(Play, click, _, playAction),
-		bind(Stop, click, _, stopAction),
-		write('Binding done').
+:- use_module(library(dom)).
+:- use_module(library(js)).
+:- use_module(library(lists)). 
 
-	playAction :-
-		nextQueryArgs(PA, PP),
-		Term =.. [playCard, PA, PP, 'PA2', 'PP2', 'Flag', 'Msg'],
-		msg2JS('gameturn', Term).
-		
-	stopAction :-
-		get_by_id('btplay', Play),
-		set_attr(Play, disabled, true), 
-		set_style(Play, 'background-color', 'white'),
-		nextQueryArgs(PA, PP),
-		Term =.. [stop, PA, PP, 'Flag', 'Msg'],
-		msg2JS('gamestop', Term).
+init :-
+	get_by_id('btplay', Play),
+	get_by_id('btstop', Stop),
+	bind(Play, click, _, playAction),
+	bind(Stop, click, _, stopAction),
+	holdTerm(card(herz, ass, 14), current),
+	write('Binding done').
 
-	msg2JS(FktID, Term) :-
-		writeHTML('Tauhtml',Term, String),
-		prop(FktID, JSFkt),
-		apply(JSFkt, [], _).
+playAction :-
+	nextQueryArgs(PA, PP),
+	Term =.. [playCard, PA, PP, 'PA2', 'PP2', 'Flag', 'Current', 'Msg'],
+	msg2JS('sendPengine', Term).
+	
+stopAction :-
+	get_by_id('btplay', Play),
+	set_attr(Play, disabled, true), 
+	set_style(Play, 'background-color', 'white'),
+	nextQueryArgs(PA, PP),
+	Term =.. [stop, PA, PP, 'Flag', 'Msg'],
+	msg2JS('sendPengine', Term).
 
-	nextQueryArgs(PA2, PP2) :-
-		fact(pa2, PA),
-		fact(pp2, PP),
-		nextPlayer(PA, PP, PA2, PP2).
+msg2JS(FktID, Term) :-
+	writeHTML('Tauhtml',Term, String),
+	prop(FktID, JSFkt),
+	apply(JSFkt, [], _).
 
-	% +Term : a Tau Prolog term
-	% -HMTLString : the term as String
-	writeHTML(ID, Term, HTMLString) :-
-		get_by_id(ID, HTML),
-		open(HTML, write, Stream), 
-		write(Stream, Term), % for Debug
-		close(Stream),
-		get_html(HTML, HTMLString).
+nextQueryArgs(PA2, PP2) :-
+	state(pa2, PA),
+	state(pp2, PP),
+	nextPlayer(PA, PP, PA2, PP2).
 
-	% -Term : a Tau Prolog Term
-	readHTML(ID, Term) :-
-		get_by_id(ID, HTML),
-		open(HTML, read, Stream), 
-		read(Stream, Term),
-		close(Stream).
+% +Term : a Tau Prolog term
+% -HMTLString : the term as String
+writeHTML(ID, Term, HTMLString) :-
+	get_by_id(ID, HTML),
+	open(HTML, write, Stream), 
+	write(Stream, Term), 
+	close(Stream),
+	get_html(HTML, HTMLString).
 
-	nextPlayer(PA, PP, PP, PA).
-	% +JSObjectID: an reference to a JS object containing the answer of a Pengine query
-	% -TauTerm: the Pengine answer as Tau Prolog Term
-	%analyse(JSObject, TauTerm) :-
-	%	parseTerm(JSObject, TauTerm),
-	%	fact(msg, Msg),
-	%	writeHTML('pout', Msg, String).
+% -Term : a Tau Prolog Term
+readHTML(ID, Term) :-
+	get_by_id(ID, HTML),
+	open(HTML, read, Stream), 
+	read(Stream, Term),
+	close(Stream).
 
-	% if element is not defined
-	parseTerm(Elem, _) :- var(Elem).
-	% if element is atomic
-	parseTerm(Elem, Elem) :- atomic(Elem).
-	% if element is a json object
-	parseTerm(JSObject, TauTerm) :-
-		prop(JSObject, args, ArgList),
-		prop(JSObject, functor, Functor),
-		parseList(ArgList, TermList),
-		append([Functor], TermList, TermList2),
-		TauTerm =.. TermList2.
+costume(Farbe, Name) :-
+	atomic_list_concat([Farbe, Name], File), 
+	%write('File'), write(File), %for debug
+	prop('costume', JSFkt), 
+	apply(JSFkt, [File], _).
 
-	% if elem is a list
-	parseList([], []).
-	parseList([Head | Tail ], [Head2 | Tail2]) :-
-		(is_list(Head) -> 
-			parseList(Head, Head2);
-			(atomic(Head) -> 
-				Head2 = Head; 
-				parseTerm(Head, Head2)
-			)
-		),
-		parseList(Tail, Tail2).
+nextPlayer(PA, PP, PP, PA).
+% +JSObjectID: an reference to a JS object containing the answer of a Pengine query
+% -TauTerm: the Pengine answer as Tau Prolog Term
+%analyse(JSObject, TauTerm) :-
+%	parseTerm(JSObject, TauTerm),
+%	state(msg, Msg),
+%	writeHTML('pout', Msg, String).
 
-	% store the fact under reference of property
-	% which means if pengine query contains variable P1
-	% the answer will be included in Tau database as
-	% fact(p1, AnswerTerm)
-	holdTerm(TauTerm, H) :-
-		% write(fact(H, TauTerm)), % for debug
-		retractall(fact(H, _)),
-		asserta(fact(H, TauTerm)).
+% if element is not defined
+parseTerm(Elem, _) :- var(Elem).
+% if element is atomic
+parseTerm(Elem, Elem) :- atomic(Elem).
+% if element is a json object
+parseTerm(JSObject, TauTerm) :-
+	prop(JSObject, args, ArgList),
+	prop(JSObject, functor, Functor),
+	parseList(ArgList, TermList),
+	append([Functor], TermList, TermList2),
+	TauTerm =.. TermList2.
 
-	% go through all properties given by the list and parse them
-	% if all is parsed message is available and can put out
-	takeResult([], _, _) :- 
-		fact(msg, Msg),
-		writeHTML('pout', Msg, String).
-	takeResult([H|T], JSObjectID, Term) :-
-		prop(JSObjectID, JSObject),
-		prop(JSObject, H, SubJSObject),
-		parseTerm(SubJSObject, TauTerm),
-		holdTerm(TauTerm, H),
-		takeResult(T, JSObjectID, Term).
-		
+% if elem is a list
+parseList([], []).
+parseList([Head | Tail ], [Head2 | Tail2]) :-
+	(is_list(Head) -> 
+		parseList(Head, Head2);
+		(atomic(Head) -> 
+			Head2 = Head; 
+			parseTerm(Head, Head2)
+		)
+	),
+	parseList(Tail, Tail2).
+
+% store the fact under reference of property
+% which means if pengine query contains variable P1
+% the answer will be included in Tau database as
+% state(p1, AnswerTerm)
+holdTerm(TauTerm, H) :-
+	%write(state(H, TauTerm)), % for debug
+	retractall(state(H, _)),
+	asserta(state(H, TauTerm)).
+
+% go through all properties given by the list and parse them
+% if all is parsed message is available and can put out
+takeResult([], _, _) :- 
+	state(msg, Msg),
+	writeHTML('pout', Msg, String),
+	state(current, card(Farbe, Name, _)),
+	costume(Farbe, Name).
+takeResult([H|T], JSObjectID, Term) :-
+	prop(JSObjectID, JSObject),
+	prop(JSObject, H, SubJSObject),
+	parseTerm(SubJSObject, TauTerm),
+	holdTerm(TauTerm, H),
+	takeResult(T, JSObjectID, Term).
+	
+
+
+

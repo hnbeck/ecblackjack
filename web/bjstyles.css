@@ -5,6 +5,7 @@
 	margin-right: auto;
 	margin-top: 20px;
 	flex-flow: center; 
+	display: none;
 }
 #playarea {
 	width:800px; 
@@ -30,7 +31,7 @@
 	padding:20px; 
 	border-color:black; 
 	background-color: lightgreen;
-	/*display: none; */
+	display: none;
 }
 
 button {

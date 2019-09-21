@@ -38,6 +38,7 @@ http_json:json_type('text/x-prolog').
 http_json:json_type('text/prolog').
 
 http:location(files, '/web', []).
+http:location(image, '/graphics', []).
 
 
 server(Port) :- 
@@ -49,6 +50,9 @@ main(Request) :-
 
 serve_files(Request) :-
 		http_reply_from_files(web, [], Request).
+
+serve_files(Request) :-
+		http_reply_from_files(image, [], Request).
 
 %serve_files(Request) :-
 %		http_404([\p('Sorry could not find')], Request).

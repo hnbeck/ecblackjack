@@ -11,17 +11,51 @@
 	<script src="/web/jquery-1.11.3.min.js"  type="text/javascript"></script>
 	<script src="/web/tau-prolog.js" type="text/javascript"></script>
 	<script src="/web/pengines.js" type="text/javascript"></script>
+	<script src="/web/p5.min.js" type="text/javascript"></script>
 
 	<script type="text/javascript">
 		var result; 
 		var roundNo  = 0; 
 		var pengine; 
 		var session = pl.create(1000);
+		var img; 
+		var canvas1; 
+		var cardwidth = 100; 
+		var cardheight = 150;
+		var p1X = 15;
+		var p1Y = 15 + 15 + cardHeight;
 
 		$(document).ready(init_system());
 
 		// initiate a TauProlog session
 		
+		function preload() {
+  				img = loadImage('/graphics/herzass.png');
+		}
+		function setup() {
+  			canvas1 = createCanvas(800, 345);
+  			canvas1.parent('p1Container');
+
+  			noStroke(); 
+  			fill(color(240,200,140));
+  			rect(0,0,800,300);
+  			noStroke(); 
+  			fill(color(220,220,220));
+  			rect(10,10,780,280);
+
+
+		}
+		
+		function draw() {
+  		// Displays the image at its actual size at point (0,0)
+  			image(img, p1X, 15, cardwidth, cardheight);
+  		}
+ 		
+ 		function costume(name) {
+ 			img = loadImage('/graphics/'+name+'.png');
+ 			console.log('Name is: ' + name);
+ 		}
+
 		function init_system() {
 			$.get("/web/webProlog.pl", function(data) {
 				session.consult(data);
@@ -32,7 +66,7 @@
 				oncreate: handleCreate, 
 				onsuccess: handleOutput,
 				destroy: false
-			}); 
+			}); 	
 
 			console.log('Init done');
 		}
@@ -66,55 +100,18 @@
 
 		// Callback needed for triggering and displaying answers of Tau prolog querys
 		var printAnswer = function(answer){
+			// Debug code
 			//$("#Tauout").append(pl.format_answer(answer));
 			//$("#Tauout").append("<br>");
 			console.log(answer);
 		}
 
-		function test() {
-			session.query("fact(A,B), writeHTML(fact(A,disc), String).");
-			session.answer(printAnswer);
-		}
-
-		function gameturn() {
-			//var players = buildQueryArg();
-			//var query = 'playCard('+ players[1] + ',' + players[2] + ', P1, P2, Flag,  Msg)';
+		function sendPengine() {
 			var query = $("#Tauhtml").text();
 			//var query = 'showDeck(List)'
 			console.log("Query will be: " + query)
 			pengine.ask(query);
-
 		}
-
-		function gamestop() {
-			//var players = buildQueryArg();
-			//var query = 'stop('+ players[1] + ',' + players[2] + ', _,  Msg)';
-			var query = $("#Tauhtml").text();
-			console.log("Query will be: " + query);
-			// $("#btplay").prop('disabled', true);
-			// $("#btplay").css('background-color','white');
-			pengine.ask(query);
-
-		}
-		/*function buildQueryArg() {
-			session.query("fact(p1, P1), writeHTML('Tauhtml', P1, _).");
-			session.answer(); 
-			p1 = $("#Tauhtml").text();
-			session.query("fact(p2, P2), writeHTML('Tauhtml', P2, _).");
-			session.answer(); 
-			p2 = $("#Tauhtml").text();
-			if (roundNo % 2 == 0) 
-				return [1, p2, p1] 
-			else 
-				return [2, p1, p2];
-		}*/
-
-		/*function playerString(){
-			if (roundNo % 2 == 0) 
-				return "Player 2, your turn"; 
-			else 
-				return "Player 1, your turn"; 
-		}*/
 
 	</script>
 
@@ -129,23 +126,22 @@
 		<h1>Demo game Black Jack</h1>
 		</p>
 		<h3>This simple game is intended as template for projects using SWI Prolog, its Pengines library and Tau-Prolog.</h3>
-		<p>
-		If the page is loaded, a pengine query is triggerd (playGame(P1, P2)). This initialise the game and set up both players P1 and P2.  </p>
-		</p>
+		
 		<button type="button" id="btplay"  >Play Card</button> 
 		<button type="button" id="btstop" >Stop</button>
-		</p>
-		</p>
-		Output of Pengine
+		<p>
+		<div id='p1Container'></div>	
 		</p>
 		<div id="pout"></div>
 		<hr>
 	</div>
-	<div id="testblock">
+	
+	<!-- standard this section is invisible - only for debug -->
+
+	<div id="testblock"> 
 		<h4> Test / Debug area </h4>
 		<p> The test below queries for a hard coded predicate .</p>
 
-		 Click <a href="javascript:test()"> here </a> for test. The test asks for a hard coded fact <i>fact(world, sphere)</i> by triggering the query <i>"fact(A,B), writeHTML(fact(A,disc), String).</i><br>
 		 Output for Tau Prolog queries. Output is done via callback of the pl.answer function of Tau Prolog.
 		 </p>
 		 <div id="Tauout"></div>

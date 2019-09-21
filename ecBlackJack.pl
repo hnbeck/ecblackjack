@@ -11,7 +11,7 @@
 % License: MIT 
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- module(ecBlackJack, [playGame/3, stop/4, showDeck/1, playCard/6]).
+:- module(ecBlackJack, [playGame/3, stop/4, showDeck/1, playCard/7]).
 :- use_module(library(pengines)).
 :- use_module(library(sandbox)).
 
@@ -57,7 +57,7 @@ fillDeck(Farbe, Start, End) :-
 % initialize deck
 % initDeck(-list of all known cards)
 initDeck(List) :-
-	fillDeck(herz, 1, 9),	
+	fillDeck(herz, 2, 9),	
 	showDeck(List).
 
 % showDeck(-list of all known cards)
@@ -90,7 +90,7 @@ cardBuilder(Farbe, Name, card(Farbe, Name, X)) :-
 % random draw
 % drawCard(-structure)
 drawCard(card(A, B, Num)) :-
-	random_between(1,14, Num), 
+	random_between(2,14, Num), 
 	card(A, B, Num),
 	retractall(card(A,B,Num)). 
 
@@ -104,14 +104,14 @@ cardPoints(Farbe, Name, Points) :-
 %%%% play card
 
 % playCard(+player, -updated player)
-playCard(player(Num, Field), player(Num, Field2), Msg) :-
+playCard(player(Num, Field), player(Num, Field2), Card, Msg) :-
 	drawCard(Card), 
 	append(Field, [Card], Field2), 
 	format(atom(Msg), "your draw ~w\n",  [Card]).
 
 %% command for Interpreter
-playCard(PA1, PP, PA2, PP,  go, Msg) :-
-	playCard(PA1, PA2, Msg).
+playCard(PA1, PP, PA2, PP,  go, Card, Msg) :-
+	playCard(PA1, PA2, Card, Msg).
 
 
 %%%%%%%%%%%%%%%%%%%%% winning rules %%%%%%%%%%%%%%%%%%
