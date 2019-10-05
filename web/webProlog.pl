@@ -16,7 +16,7 @@ init :-
 	get_by_id('btstop', Stop),
 	bind(Play, click, _, playAction),
 	bind(Stop, click, _, stopAction),
-	holdTerm(card(herz, ass, 14), current),
+	%holdTerm(card(herz, ass, 14), current),
 	write('Binding done').
 
 playAction :-
@@ -59,12 +59,17 @@ readHTML(ID, Term) :-
 	close(Stream).
 
 costume(Farbe, Name) :-
+	state(pp2, P),
+	playerNo(P, PNo),
 	atomic_list_concat([Farbe, Name], File), 
-	%write('File'), write(File), %for debug
-	prop('costume', JSFkt), 
-	apply(JSFkt, [File], _).
+	% write('Prolog costume File'), write(File), write(PNo),  %for debug
+	prop('newCostume', JSFkt), 
+	apply(JSFkt, [File, PNo], _).
 
 nextPlayer(PA, PP, PP, PA).
+
+playerNo(player(PNo, _), PNo).
+	
 % +JSObjectID: an reference to a JS object containing the answer of a Pengine query
 % -TauTerm: the Pengine answer as Tau Prolog Term
 %analyse(JSObject, TauTerm) :-
@@ -101,17 +106,22 @@ parseList([Head | Tail ], [Head2 | Tail2]) :-
 % the answer will be included in Tau database as
 % state(p1, AnswerTerm)
 holdTerm(TauTerm, H) :-
-	%write(state(H, TauTerm)), % for debug
+	% write('Taustate '), write(state(H, TauTerm)), % for debug
 	retractall(state(H, _)),
 	asserta(state(H, TauTerm)).
 
 % go through all properties given by the list and parse them
 % if all is parsed message is available and can put out
 takeResult([], _, _) :- 
+	state(current, card(Farbe, Name, _)),
 	state(msg, Msg),
 	writeHTML('pout', Msg, String),
-	state(current, card(Farbe, Name, _)),
-	costume(Farbe, Name).
+	costume(Farbe, Name),!.
+	
+takeResult([], _, _) :- 
+	state(msg, Msg),
+	writeHTML('pout', Msg, String).
+	
 takeResult([H|T], JSObjectID, Term) :-
 	prop(JSObjectID, JSObject),
 	prop(JSObject, H, SubJSObject),

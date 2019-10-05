@@ -14,49 +14,264 @@
 	<script src="/web/p5.min.js" type="text/javascript"></script>
 
 	<script type="text/javascript">
-		var result; 
-		var roundNo  = 0; 
+
+		// the Prolog engines
 		var pengine; 
 		var session = pl.create(1000);
-		var img; 
-		var canvas1; 
-		var cardwidth = 100; 
-		var cardheight = 150;
-		var p1X = 15;
-		var p1Y = 15 + 15 + cardHeight;
 
-		$(document).ready(init_system());
+		// globals for Prolog communication
+		var resList;
+		var result; 
 
-		// initiate a TauProlog session
+		// the objects, which are costumes
+		var lights; 
+		var aDesk; 
+		var gameCanvas; 
+		var deckCostume; 
+		var cards; 
 		
-		function preload() {
-  				img = loadImage('/graphics/herzass.png');
+		// animation globals
+		var pos = 1; // light counter
+		var turnCounter = 0; 
+
+		// useful constants
+		const cWidth = 0; 
+		const cHeight = 1; 
+		const cMargin = 2; 
+		const cX = 3;
+		const cY = 4; 
+		const cMidMargin = 3; 
+		const canvasW = 800; 
+		const canvasH = 350; 
+
+
+		// geometric functions
+		function cardFrame(W,H, deskFrame) {
+			var frame = [1, 2, 4, 5, 6];
+			frame[cWidth] = W/8; // width
+			frame[cHeight] = frame[cWidth] * 1.5; // height
+			frame[cMargin] = 5; // margin
+			frame[cX] = deskFrame[cMargin] + frame[cMargin];
+  			frame[cY] =	deskFrame[cMargin] + frame[cMargin]; 
+  				
+			return frame; 
 		}
+
+		function deskFrame(W,H) {
+			var frame = [1, 2, 4, 5];
+			frame[cWidth] = W; // width
+			frame[cHeight] = H; // height
+			frame[cMargin] = floor(W / 800*16); // margin
+			frame[cMidMargin] = frame[cMargin]/2;  // position mid of border
+			return frame; 
+		}
+	
+		// Grafikobjekte
+		class Lamp {
+			constructor(x, y, c, frame) {
+				this.color = c; 
+				this.x = x; 
+				this.y = y; 
+				this.diameter = frame[cMargin]; 
+				this.lumPhase = 0; 
+			};
+			
+			luminate(pos){
+				var value = this.fadeLuminance();
+				var hVal = hue(this.color);
+				var sVal = saturation(this.color);
+				this.color = color(hVal, sVal, value);
+			};
+
+			fadeLuminance() {
+				var lichtprofil = [30, 40, 50, 40, 30];
+				var value = 20; 
+
+				this.lumPhase += 1; 
+				if ((this.lumPhase  >= 0) && (this.lumPhase < lichtprofil.length)) {
+					value = lichtprofil[this.lumPhase];
+				}
+				else
+				{
+					this.lumPhase = 0; 
+				}
+				return value; 
+			};
+
+			draw() {
+				noStroke(); 
+				fill(this.color);
+				circle(this.x,this.y,this.diameter);
+			};
+		}
+
+		class Desk {
+			constructor(frame) {
+				var lampDia = frame[cMargin];
+				colorMode(HSL, 360,100,100,1); 
+
+  				let borderCol = color(35,79, 23);
+  				let deskCol = color(135,50,21);
+  
+	  			noStroke(); 
+	  			fill(borderCol);
+	  			rect(0,0,frame[cWidth],frame[cHeight]);
+	  			noStroke(); 
+	  			fill(deskCol);
+	  			rect(	lampDia,
+	  					lampDia,
+	  					frame[cWidth]-lampDia-lampDia,
+	  					frame[cHeight]-lampDia-lampDia
+	  				);
+			}
+		}
+
+		class LampLine {
+			constructor(frame) {
+				var deskWidth = frame[cWidth];
+				var deskHeight = frame[cHeight];
+				var lampDia = frame[cMargin]; // lamps diameter is same as border thickness
+				var firstLampX = frame[cMidMargin]; 
+				var firstLampY = firstLampX; // Border has in every direction the same thickness
+				var lastPosX; 
+				var lastPosY; 
+
+				this.lamps = [];
+
+				colorMode(HSL, 360,100,100,1); 
+				let col = color(60, 100, 20);
+
+				// try alternative expressen: generate coodinates right down and mirror them
+				for (var ix = firstLampX;  ix <= deskWidth; ix += lampDia)
+				{
+					this.lamps.push(new Lamp(ix, firstLampY, col, frame));
+					lastPosX = ix; 
+				}
+				for (var iy = firstLampY-lampDia; iy <= deskHeight - lampDia; iy += lampDia)
+				{
+					this.lamps.push(new Lamp(lastPosX, iy, col, frame));
+					lastPosY = iy; 
+				}
+				for (ix = lastPosX; ix >= firstLampX;  ix -= lampDia)
+				{
+					this.lamps.push(new Lamp(ix, firstLampY+(deskHeight-lampDia), col, frame));
+				}
+				for (iy = lastPosY; iy >= firstLampY-lampDia;  iy -= lampDia)
+				{
+					this.lamps.push(new Lamp(firstLampX, iy, col, frame));
+					
+				}
+			}
+
+			draw(posIn) {
+				var loc = posIn; 
+  				// Displays the image at its actual size at point (0,0)
+	  			if (loc >= this.lamps.length) {loc = 0};
+	  				for (var n = 0; n < 5; n++)
+	  				{
+	  					var index = loc - (n + 3);
+	  					if (index>=this.lamps.length) { index = index -  this.lamps.length}
+	  					if (index<0) { index = index + this.lamps.length}
+	  					this.lamps[index].luminate(n);
+	  					
+	  				}
+	  				
+	  			for (var i = 0; i< this.lamps.length; i++)
+	  			{
+	  				this.lamps[i].draw();
+	  			}
+    			return loc; 
+			}
+		}
+
+		class Costume {
+			constructor(cardName, cardFrame, playerNo) {
+				this.cardFrame = new Array(5);
+				this.cardFrame[0] = cardFrame[0];
+				this.cardFrame[1] = cardFrame[1];
+				this.cardFrame[2] = cardFrame[2];
+				this.cardFrame[3] = cardFrame[3];
+				this.cardFrame[4] = cardFrame[4];
+				this.img = loadImage('/graphics/'+cardName+'.png');
+				//console.log('costume name is: ' + cardName);
+				//console.log('costume cX ' + this.cardFrame[cX] + ' cy ' + this.cardFrame[cY]);
+				this.owner = playerNo;  
+			}
+			draw() {
+				image(this.img, 
+  					this.cardFrame[cX], 
+  					this.cardFrame[cY], 
+  					this.cardFrame[cWidth],
+  					this.cardFrame[cHeight]
+  				);
+			}
+			move(counter){
+				// only every 2. turn one next to the right
+				var pos = floor(counter/2)+1;
+				this.cardFrame[cX] =  this.cardFrame[cX] + pos * (this.cardFrame[cMargin] + 
+																	this.cardFrame[cWidth]);
+				switch (this.owner) {
+					case 1: 
+						break; 
+					case 2:
+						// Spieler 2 hat die zweite Reihe
+						this.cardFrame[cY] =  this.cardFrame[cY] + 
+												this.cardFrame[cMargin] + 
+												this.cardFrame[cHeight];
+						break; 
+				}	
+			}
+		}
+
+		//////////////// Processing code -> graphics ////////////////////
+
+		// setup the geometric things
 		function setup() {
-  			canvas1 = createCanvas(800, 345);
-  			canvas1.parent('p1Container');
+			//frameRate(15);
+			init_Prolog();
 
-  			noStroke(); 
-  			fill(color(240,200,140));
-  			rect(0,0,800,300);
-  			noStroke(); 
-  			fill(color(220,220,220));
-  			rect(10,10,780,280);
-
-
+			// the main desk
+			var aDeskFrame = deskFrame(canvasW, canvasH);
+			// a Frame for the deck of cards. Its also a prototype for every cardframe
+			var aDeckFrame = cardFrame(canvasW, canvasH, aDeskFrame); 
+			// cardframe for one drawn card
+			var aCardFrame = cardFrame(canvasW, canvasH, aDeskFrame); 
+  		
+  			cards = []; 
+  			gameCanvas = createCanvas(canvasW, canvasH);
+  			gameCanvas.parent('p1Container');
+  			aDesk = new Desk(aDeskFrame);
+  			deckCostume  = new Costume('backside', aCardFrame, 0);
+  			lights = new LampLine(aDeskFrame); 
 		}
-		
+
+		// processing main draw function
 		function draw() {
-  		// Displays the image at its actual size at point (0,0)
-  			image(img, p1X, 15, cardwidth, cardheight);
-  		}
+			pos += 1; 
+			pos = lights.draw(pos);
+			deckCostume.draw(); 
+
+  			for (var i = 0; i < cards.length; i++)
+  			{
+  				cards[i].draw();
+  			}
+  			
+		}
  		
- 		function costume(name) {
- 			img = loadImage('/graphics/'+name+'.png');
- 			console.log('Name is: ' + name);
+ 		// interface Prolog to Graphics
+ 		function newCostume(name, playerNo) {
+ 			turnCounter += 1; 
+ 			//console.log('New Costume called with player ' + playerNo + 'turn ' + turnCounter);
+ 			var currentCostume = new Costume(name, deckCostume.cardFrame, playerNo);
+ 			currentCostume.move(turnCounter); 
+ 			cards.push(currentCostume);
  		}
 
-		function init_system() {
+ 	
+ 		//////////////// Prolog Code //////////////////
+
+ 		// setup Prolog system
+		function init_Prolog() {
 			$.get("/web/webProlog.pl", function(data) {
 				session.consult(data);
 		 	});
@@ -68,22 +283,27 @@
 				destroy: false
 			}); 	
 
-			console.log('Init done');
+			
+			// call the init of the game
+			//pengine.ask('playGame(PA2, PP2, Msg)');
+			console.log('Prolog Init done');
 		}
 		
 		// here are the Pengine handle functions
 		function handleCreate() {
+			// init tau prolog
 			session.query("init.");
 			session.answer(printAnswer);
+
 			// call the init of the game
 			pengine.ask('playGame(PA2, PP2, Msg)');
 		}
-		
+		// Pengine handle function for reveiving SWI Prolog answer
 		function handleOutput(){
 			// store the answer into global variable for later analysis
 			// in future should be more intelligent. P1 P2 must not be there always
-			roundNo = roundNo + 1; 
-			var resList = []; 
+		
+			resList = []; 
 			for (x in this.data[0])
 			{
 				// properties must be lowercase later for Tau Prolog
@@ -98,18 +318,19 @@
 			session.answer(printAnswer);
 		}
 
+		/////// Tau Prolog ///////
+
 		// Callback needed for triggering and displaying answers of Tau prolog querys
 		var printAnswer = function(answer){
 			// Debug code
 			//$("#Tauout").append(pl.format_answer(answer));
 			//$("#Tauout").append("<br>");
-			console.log(answer);
+			console.log('Tau answer:' + answer);
 		}
 
 		function sendPengine() {
 			var query = $("#Tauhtml").text();
-			//var query = 'showDeck(List)'
-			console.log("Query will be: " + query)
+			console.log("Query will be: " + query);
 			pengine.ask(query);
 		}
 
