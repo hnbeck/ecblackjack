@@ -31,7 +31,6 @@
 		var cards; 
 		
 		// animation globals
-		var pos = 1; // light counter
 		var turnCounter = 0; 
 
 		// useful constants
@@ -74,25 +73,30 @@
 				this.y = y; 
 				this.diameter = frame[cMargin]; 
 				this.lumPhase = 0; 
+				this.lichtprofil = new Array(51);
+
+				this.lichtprofil[25] = 50; 
+				for (var i = 1; i < 26; i++) {
+					this.lichtprofil[25-i] = 50 - (i);
+					this.lichtprofil[25+i] = 50 - (i);
+				}
 			};
 			
-			luminate(pos){
+			luminate(){
 				var value = this.fadeLuminance();
+
 				var hVal = hue(this.color);
 				var sVal = saturation(this.color);
 				this.color = color(hVal, sVal, value);
 			};
 
 			fadeLuminance() {
-				var lichtprofil = [30, 40, 50, 40, 30];
-				var value = 20; 
+				var value = 25; 
 
 				this.lumPhase += 1; 
-				if ((this.lumPhase  >= 0) && (this.lumPhase < lichtprofil.length)) {
-					value = lichtprofil[this.lumPhase];
-				}
-				else
-				{
+				if ((this.lumPhase  >= 0) && (this.lumPhase < this.lichtprofil.length)) {
+					value = this.lichtprofil[this.lumPhase];
+				} else {
 					this.lumPhase = 0; 
 				}
 				return value; 
@@ -139,7 +143,7 @@
 				this.lamps = [];
 
 				colorMode(HSL, 360,100,100,1); 
-				let col = color(60, 100, 20);
+				let col = color(60, 100, 25);
 
 				// try alternative expressen: generate coodinates right down and mirror them
 				for (var ix = firstLampX;  ix <= deskWidth; ix += lampDia)
@@ -163,24 +167,13 @@
 				}
 			}
 
-			draw(posIn) {
-				var loc = posIn; 
-  				// Displays the image at its actual size at point (0,0)
-	  			if (loc >= this.lamps.length) {loc = 0};
-	  				for (var n = 0; n < 5; n++)
-	  				{
-	  					var index = loc - (n + 3);
-	  					if (index>=this.lamps.length) { index = index -  this.lamps.length}
-	  					if (index<0) { index = index + this.lamps.length}
-	  					this.lamps[index].luminate(n);
-	  					
-	  				}
-	  				
+			draw() {
+  				
 	  			for (var i = 0; i< this.lamps.length; i++)
 	  			{
+	  				this.lamps[i].luminate();
 	  				this.lamps[i].draw();
 	  			}
-    			return loc; 
 			}
 		}
 
@@ -196,6 +189,7 @@
 				//console.log('costume name is: ' + cardName);
 				//console.log('costume cX ' + this.cardFrame[cX] + ' cy ' + this.cardFrame[cY]);
 				this.owner = playerNo;  
+				this.screentext = ""; 
 			}
 			draw() {
 				image(this.img, 
@@ -204,14 +198,22 @@
   					this.cardFrame[cWidth],
   					this.cardFrame[cHeight]
   				);
+  				textSize(20);
+  				textAlign(CENTER, CENTER);
+  				var X = this.cardFrame[cX] - this.cardFrame[cMargin];
+  				var Y = this.cardFrame[cY] - this.cardFrame[cMargin];
+  				text(this.screentext, X, Y, X+this.cardFrame[cWidth], Y +this.cardFrame[cHeight]);
 			}
 			move(counter){
 				// only every 2. turn one next to the right
 				var pos = floor(counter/2)+1;
+				console.log(pos);
 				this.cardFrame[cX] =  this.cardFrame[cX] + pos * (this.cardFrame[cMargin] + 
 																	this.cardFrame[cWidth]);
+				
 				switch (this.owner) {
 					case 1: 
+
 						break; 
 					case 2:
 						// Spieler 2 hat die zweite Reihe
@@ -221,15 +223,30 @@
 						break; 
 				}	
 			}
+			touch(aX, aY ){
+				var retVal = false; 
+
+				if (aX > this.cardFrame[cX]) 
+					if (aX < this.cardFrame[cX]+this.cardFrame[cWidth])
+						if (aY > this.cardFrame[cY])
+							if (aY < this.cardFrame[cY]+this.cardFrame[cHeight])
+								retVal = true; 
+
+
+				return retVal; 
+			}
+			mytext(Text) {
+				this.screentext = Text; 
+				//console.log('touched');
+				//console.log(this.screentext);
+			}
 		}
 
 		//////////////// Processing code -> graphics ////////////////////
 
 		// setup the geometric things
 		function setup() {
-			//frameRate(15);
-			init_Prolog();
-
+			
 			// the main desk
 			var aDeskFrame = deskFrame(canvasW, canvasH);
 			// a Frame for the deck of cards. Its also a prototype for every cardframe
@@ -243,12 +260,18 @@
   			aDesk = new Desk(aDeskFrame);
   			deckCostume  = new Costume('backside', aCardFrame, 0);
   			lights = new LampLine(aDeskFrame); 
+
+  			// that  have to be at the end ! the JS objects shall exist if init prolog
+  			frameRate(20);
+			init_Prolog();
 		}
 
 		// processing main draw function
 		function draw() {
-			pos += 1; 
-			pos = lights.draw(pos);
+			lights.draw();
+			session.query('activePlayerNo.');
+			session.answer(printAnswer);
+			//deckCostume.mytext($("#Tauhtml").text());
 			deckCostume.draw(); 
 
   			for (var i = 0; i < cards.length; i++)
@@ -258,13 +281,22 @@
   			
 		}
  		
+ 		function mouseClicked(){
+
+ 			if (deckCostume.touch(mouseX, mouseY))
+ 			{
+ 				session.query('playAction.');
+ 				session.answer(printAnswer);
+ 			}
+ 		}
+
  		// interface Prolog to Graphics
  		function newCostume(name, playerNo) {
- 			turnCounter += 1; 
  			//console.log('New Costume called with player ' + playerNo + 'turn ' + turnCounter);
  			var currentCostume = new Costume(name, deckCostume.cardFrame, playerNo);
  			currentCostume.move(turnCounter); 
  			cards.push(currentCostume);
+ 			turnCounter += 1; 
  		}
 
  	
@@ -296,7 +328,7 @@
 			session.answer(printAnswer);
 
 			// call the init of the game
-			pengine.ask('playGame(PA2, PP2, Msg)');
+			pengine.ask('playGame(P1, P2, Msg)');
 		}
 		// Pengine handle function for reveiving SWI Prolog answer
 		function handleOutput(){
@@ -325,7 +357,7 @@
 			// Debug code
 			//$("#Tauout").append(pl.format_answer(answer));
 			//$("#Tauout").append("<br>");
-			console.log('Tau answer:' + answer);
+			//console.log('Tau answer:' + answer);
 		}
 
 		function sendPengine() {
@@ -348,7 +380,6 @@
 		</p>
 		<h3>This simple game is intended as template for projects using SWI Prolog, its Pengines library and Tau-Prolog.</h3>
 		
-		<button type="button" id="btplay"  >Play Card</button> 
 		<button type="button" id="btstop" >Stop</button>
 		<p>
 		<div id='p1Container'></div>	
