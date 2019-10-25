@@ -1,7 +1,7 @@
 
 ## README for ECBlackJack experimental game
 
-ECBlackJachis a simple implementation  of Black Jack using [SWI-Prolog](http://www.swi-prolog.org) and [Tau-Prolog](http://www.tau-prolog.org)
+ECBlackJack is a simple implementation  of Black Jack using [SWI-Prolog](http://www.swi-prolog.org) and [Tau-Prolog](http://www.tau-prolog.org)
 
 The idea is to test a Web browser based interface for a SWI-Prolog application using the Pengines library. 
 
