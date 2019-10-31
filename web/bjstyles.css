@@ -19,6 +19,7 @@
 	padding:20px; 
 	border-color:blue; 
 	background-color: lightgray;
+	display: block;
 }
 
 #Tauout {

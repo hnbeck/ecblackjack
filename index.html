@@ -27,8 +27,10 @@
 		var lights; 
 		var aDesk; 
 		var gameCanvas; 
-		var deckCostume; 
-		var cards; 
+		//var deckCostume; 
+		//var bankCostume; 
+		var costumes; 
+		var aCardFrame; 
 		
 		// animation globals
 		var turnCounter = 0; 
@@ -45,6 +47,7 @@
 
 
 		// geometric functions
+		// calculate a card frame relative to desk frame
 		function cardFrame(W,H, deskFrame) {
 			var frame = [1, 2, 4, 5, 6];
 			frame[cWidth] = W/8; // width
@@ -55,7 +58,7 @@
   				
 			return frame; 
 		}
-
+		// calculate a desk frame relative to window size
 		function deskFrame(W,H) {
 			var frame = [1, 2, 4, 5];
 			frame[cWidth] = W; // width
@@ -190,6 +193,11 @@
 				//console.log('costume cX ' + this.cardFrame[cX] + ' cy ' + this.cardFrame[cY]);
 				this.owner = playerNo;  
 				this.screentext = ""; 
+
+				// Geometrieinformation für mögliche Orte
+				this.nextPlace =  [this.cardFrame[cMargin] + this.cardFrame[cWidth],
+									this.cardFrame[cMargin] + this.cardFrame[cHeight]];
+
 			}
 			draw() {
 				image(this.img, 
@@ -200,29 +208,15 @@
   				);
   				textSize(20);
   				textAlign(CENTER, CENTER);
-  				var X = this.cardFrame[cX] - this.cardFrame[cMargin];
-  				var Y = this.cardFrame[cY] - this.cardFrame[cMargin];
-  				text(this.screentext, X, Y, X+this.cardFrame[cWidth], Y +this.cardFrame[cHeight]);
+  				var X = this.cardFrame[cX] ;
+  				var Y = this.cardFrame[cY] ;
+  				text(this.screentext, X, Y, this.cardFrame[cWidth] , this.cardFrame[cHeight]);
 			}
-			move(counter){
-				// only every 2. turn one next to the right
-				var pos = floor(counter/2)+1;
-				console.log(pos);
-				this.cardFrame[cX] =  this.cardFrame[cX] + pos * (this.cardFrame[cMargin] + 
-																	this.cardFrame[cWidth]);
-				
-				switch (this.owner) {
-					case 1: 
+			position(cardNo){
+				this.cardFrame[cX] = this.places[this.owner][0] + cardNo*this.nextPlace[0];
+				this.cardFrame[cY] = this.places[this.owner][1];
+			}
 
-						break; 
-					case 2:
-						// Spieler 2 hat die zweite Reihe
-						this.cardFrame[cY] =  this.cardFrame[cY] + 
-												this.cardFrame[cMargin] + 
-												this.cardFrame[cHeight];
-						break; 
-				}	
-			}
 			touch(aX, aY ){
 				var retVal = false; 
 
@@ -240,6 +234,15 @@
 				//console.log('touched');
 				//console.log(this.screentext);
 			}
+			geometry(aPlaceDef) {
+
+				this.places = aPlaceDef;
+				for (var n = 0; n <3 ; n++)
+				{
+					this.places[n][0] = this.cardFrame[cX] + aPlaceDef[n][0] *this.nextPlace[0];
+					this.places[n][1] = this.cardFrame[cY] + aPlaceDef[n][1] *this.nextPlace[1];
+				}
+			}
 		}
 
 		//////////////// Processing code -> graphics ////////////////////
@@ -247,18 +250,19 @@
 		// setup the geometric things
 		function setup() {
 			
+			costumes = []; 
+
 			// the main desk
 			var aDeskFrame = deskFrame(canvasW, canvasH);
-			// a Frame for the deck of cards. Its also a prototype for every cardframe
+			// a Frame for the deck of costumes. Its also a prototype for every cardframe
 			var aDeckFrame = cardFrame(canvasW, canvasH, aDeskFrame); 
 			// cardframe for one drawn card
-			var aCardFrame = cardFrame(canvasW, canvasH, aDeskFrame); 
+			aCardFrame = cardFrame(canvasW, canvasH, aDeskFrame); 
   		
-  			cards = []; 
   			gameCanvas = createCanvas(canvasW, canvasH);
   			gameCanvas.parent('p1Container');
   			aDesk = new Desk(aDeskFrame);
-  			deckCostume  = new Costume('backside', aCardFrame, 0);
+  			
   			lights = new LampLine(aDeskFrame); 
 
   			// that  have to be at the end ! the JS objects shall exist if init prolog
@@ -269,21 +273,34 @@
 		// processing main draw function
 		function draw() {
 			lights.draw();
+			// query the active player, result is in Tauhtml
 			session.query('activePlayerNo.');
 			session.answer(printAnswer);
-			//deckCostume.mytext($("#Tauhtml").text());
-			deckCostume.draw(); 
+			
+			var text = $("#Tauhtml").text();
+			var index; 
 
-  			for (var i = 0; i < cards.length; i++)
+			// determine for which costume the text is indented, Bank is costume 1, player 0
+			if (text == 'Bank')	{
+				index = 1; 
+			} else	{
+				index = 0; 
+			}	
+				
+  			for (var i = 0; i < costumes.length; i++)
   			{
-  				cards[i].draw();
+  				costumes[i].mytext('');
+  				if (i == index ) 
+  					costumes[i].mytext(text);
+
+  				costumes[i].draw();
   			}
   			
 		}
  		
  		function mouseClicked(){
 
- 			if (deckCostume.touch(mouseX, mouseY))
+ 			if (costumes[1].touch(mouseX, mouseY))
  			{
  				session.query('playAction.');
  				session.answer(printAnswer);
@@ -291,12 +308,16 @@
  		}
 
  		// interface Prolog to Graphics
- 		function newCostume(name, playerNo) {
- 			//console.log('New Costume called with player ' + playerNo + 'turn ' + turnCounter);
- 			var currentCostume = new Costume(name, deckCostume.cardFrame, playerNo);
- 			currentCostume.move(turnCounter); 
- 			cards.push(currentCostume);
- 			turnCounter += 1; 
+ 		function newCostume(name, playerNo, cardNo, aPlaceDef ) {
+ 			console.log("new Costume " + name);
+
+			//console.log('New Costume called with player ' + playerNo + 'turn ' + turnCounter);
+			currentCostume = new Costume(name, aCardFrame, playerNo);
+			currentCostume.geometry(aPlaceDef);
+			currentCostume.position(cardNo); 
+			costumes.push(currentCostume);
+			turnCounter += 1; 
+ 			
  		}
 
  	
@@ -326,9 +347,9 @@
 			// init tau prolog
 			session.query("init.");
 			session.answer(printAnswer);
-
+			$("#Tauhtml").text('');
 			// call the init of the game
-			pengine.ask('playGame(P1, P2, Msg)');
+			pengine.ask('playGame(P1, P2, Flag, Msg)');
 		}
 		// Pengine handle function for reveiving SWI Prolog answer
 		function handleOutput(){
@@ -347,6 +368,8 @@
 			console.log(result);
 			
 			session.query("takeResult(["+ resList.toString() + "], result, Term).");
+			session.answer(printAnswer);
+			session.query("gameContinue.");
 			session.answer(printAnswer);
 		}
 
@@ -380,7 +403,6 @@
 		</p>
 		<h3>This simple game is intended as template for projects using SWI Prolog, its Pengines library and Tau-Prolog.</h3>
 		
-		<button type="button" id="btstop" >Stop</button>
 		<p>
 		<div id='p1Container'></div>	
 		</p>

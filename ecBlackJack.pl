@@ -12,7 +12,7 @@
 % License: MIT 
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- module(ecBlackJack, [playGame/3, stop/4, listDeck/2, playCard/5]).
+:- module(ecBlackJack, [playGame/4, stop/4, listDeck/2, playCard/5]).
 
 :- use_module(library(pengines)).
 :- use_module(library(sandbox)).
@@ -52,10 +52,10 @@ card(kreuz, dame, 12).
 card(kreuz, koenig, 13).
 card(kreuz, ass, 14).
 card(schippe, 10, 10).
-card(schippe, bube, 11).
-card(schippe, dame, 12).
-card(schippe, koenig, 13).
-card(schippe, ass, 14).
+card(schippe, bube, 10).
+card(schippe, dame, 10).
+card(schippe, koenig, 10).
+card(schippe, ass, 11).
 
 % Provide access to card structure
 % cardPoints(+ Card Color, +Name, -Points)
@@ -107,8 +107,11 @@ newPlayer(Num, player(Num, [])).
 % idea: there is player 1 and player 2. In every turn, one is the active player
 % after a play action, the active and passive player changes
 % Init the game
-% playGame(- P1: first player, -P2: scnd player, - Msg: a message string)
-playGame(P1, P2, Msg) :-
+% playGame(	-P1: first player, 
+% 			-P2: scnd player, 
+%			-Flag: go or turn or stop indicating if game contiune and how
+%			-Msg: a message string)
+playGame(P1, P2, go, Msg) :-
 	initDeck(), 
 	newPlayer(1, P1), 
 	newPlayer(2, P2),
@@ -130,7 +133,7 @@ playCard(player(Num, Field), player(Num, Field2), Card, Flag, Msg) :-
 	stopCondition(Field2, Flag), 
 	format(atom(Msg), "your draw ~w\n",  [Card]).
 % drawCard was false - no Cards anymore in Deck - stop Game
-playCard(P1, P2, _, over, Msg) :-
+playCard(P1, P2, _, stop, Msg) :-
 	stop(P1, P2, _, Msg ).
 
 %%%%%%%%%%%%%%%%%%%% transformations - not visible outside %%%%%%%%%%%%%%%%%%%%%
@@ -160,6 +163,9 @@ stateWinner(Feld1, Feld2, Msg) :-
 win(dame, bube).
 win(koenig, dame).
 win(ass, koenig).
+blackjack(ass, dame).
+blackjack(ass, koenig).
+blsckjack(ass, bube).
 
 % transitiv wining relation
 winAlso(X,Y) :-
@@ -174,7 +180,7 @@ cardsTest(Cards, Distance) :-
 	cardsSum(Cards, Sum), 
 	Distance is 21 - Sum.
 % test of < 21
-cardsOk(Distance, go) :-
+cardsOk(Distance, turn) :-
 	Distance >= 0.
 % Test of > 21
 cardsOk(Distance, stop) :-
@@ -215,11 +221,11 @@ winner([C|Cs1], [C2|Cs2], Winner) :-
 	judgement(Distance1, Distance2, Winner).
 
 judgement(Distance1, Distance2, 1) :-
-	cardsOk(Distance1, go),
+	cardsOk(Distance1, turn),
 	cardsOk(Distance2, stop). 
 % player 2 wins if <21 and player1 not	
 judgement(Distance1, Distance2, 2) :- 
-	cardsOk(Distance2, go),
+	cardsOk(Distance2, turn),
 	cardsOk(Distance1, stop). 
 % player 1 wins if closer to 21
 judgement(Distance1, Distance2, 1) :-

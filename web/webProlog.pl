@@ -8,7 +8,7 @@
 % as response to user actions
 % 
 % Author: Hans N. Beck (c)
-% Last Change: 05.10.2019
+% Last Change: 30.10.2019
 %
 % License: MIT 
 %
@@ -18,14 +18,12 @@
 :- use_module(library(js)).
 :- use_module(library(lists)).  
 
-% setup DOM event bindings and other inits
+% setup the initial next player and the deck costume
 init :-
-	%get_by_id('btplay', Play),
-	get_by_id('btstop', Stop),
-	%bind(Play, click, _, playAction),
-	bind(Stop, click, _, stopAction),
-	holdTerm(nextPlayer(p2, p1), next),
-	write('Tau Prolog: Binding done').
+	holdTerm(nextPlayer(p1, p2), next),
+	deckCostume, 
+	bankCostume, 
+	write('Tau Prolog: init echt done').
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -40,28 +38,34 @@ init :-
 % Example "Current" will be bound with the card(...) drawn and stored in 
 % Tau Prolog as state(current, card(...)
 playAction :-
-	nextPlayerArg(P, PResultStr),
-	prop('deckCostume', DeckID),
-	prop(DeckID, 'mytext', Fkt),
-	apply(Fkt, ['WUMMER'], _),
-	Term =.. [playCard, P, PResultStr, 'Current', 'Flag', 'Msg'],
+	activePlayerStr(P, PResultStr),
+	Term =.. [playCard, P, PResultStr, 'DrawCard', 'Flag', 'Msg'],
 	msg2JS('sendPengine', Term).
 	
 % user wants to stop the game
 stopAction :-
-	get_by_id('btplay', Play),
-	set_attr(Play, disabled, true), 
-	set_style(Play, 'background-color', 'white'),
 	state(p1, P1),
 	state(p2, P2),
 	Term =.. [stop, P1, P2, 'Flag', 'Msg'],
 	msg2JS('sendPengine', Term).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Communication Tau Prolog back to JS level
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % write the term to be send via Pengine into a DOM node to get it as string
 msg2JS(FktID, Term) :-
-	writeHTML('Tauhtml',Term, String),
+	writeHTML('Tauhtml',Term, _),
 	prop(FktID, JSFkt),
 	apply(JSFkt, [], _).
+
+% write a message into a DOM element to show so that user can see it
+msg2JS(DOMId) :-
+	state(msg, Msg),
+	writeHTML(DOMId, Msg, _).
+
 
 % write the query term in a non visible DOM element where it can be accessed
 % at JS Level
@@ -82,6 +86,28 @@ readHTML(ID, Term) :-
 	read(Stream, Term),
 	close(Stream).
 
+% if next turn a drawn card is available per definition
+gameContinue :-
+	msg2JS('pout'),
+	state(flag, Test),
+	write('State'), write(Test),
+	(state(drawcard, card(Farbe, Name, _)) ->
+		cardCostume(Farbe, Name)
+	),
+	gameContinue2.
+
+gameContinue2 :-
+	state(flag, turn),
+	nextTurn.
+
+gameContinue2 :-
+	state(flag, go).
+
+gameContinue2 :-
+	state(flag, stop),
+	stopAction.
+	
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Player control: at start the SWI Prolog application provides to playerStr
@@ -89,30 +115,36 @@ readHTML(ID, Term) :-
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% exchange P1, P2
-nextPlayerArg(P, PStr) :-
+% next turn means exchange player
+nextTurn :-
 	state(next, nextPlayer(A, B)), 
-	holdTerm(nextPlayer(B, A), next),
-	state(A, P),
-	playerStr(A, PStr).
+	holdTerm(nextPlayer(B, A), next).
+
+% exchange P1, P2
+activePlayerStr(P, PStr) :-
+	activePlayer(P),
+	playerNo(P, PNum),
+	playerStr(PNum, PStr).
 	
-playerStr(p1, 'P1').
-playerStr(p2, 'P2').	
+playerStr(1, 'P1').
+playerStr(2, 'P2').	
 
 % determine the active player
 activePlayer(P) :-
-	state(next, nextPlayer(Pid, _)),
+	state(next, nextPlayer(Pid,_)),
 	state(Pid, P).
 
 % determine the active player
 activePlayerNo :-
 	activePlayer(P), 
 	playerNo(P, PNum),
-	atomic_list_concat( ['Player ', PNum], Text),
+	activePlayerText(PNum, Text),
 	writeHTML('Tauhtml', Text, String).
 
-activePlayerNo :-
-	writeHTML('Tauhtml', '', String).
+% Player 2 is the bank
+activePlayerText(1, 'Draw a card or stop').	
+activePlayerText(2, 'Bank').
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -120,16 +152,34 @@ activePlayerNo :-
 % 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-costume(Farbe, Name) :-
-	activePlayer(P),
-	playerNo(P, PNo),
-	atomic_list_concat([Farbe, Name], File), 
-	% write('Prolog costume File'), write(File), write(PNo),  %for debug
-	prop('newCostume', JSFkt), 
-	apply(JSFkt, [File, PNo], _).
+deckCostume :-
+	write('create the deck costume'),
+	costume('', 'backside', 1, 0).
 
+bankCostume :-
+	write('create the bank costume'),
+	costume('', 'bank', 2, 0).
+
+
+cardCostume(Farbe, Name) :-
+	activePlayer(P),
+	playerCardsCount(P, CardNo),
+	playerNo(P, PNo),
+	costume(Farbe, Name, PNo, CardNo).
+
+costume(Farbe, Name, PNo, CardNo) :-
+	costumePlaces(PlacesDef),
+	atomic_list_concat([Farbe, Name], File), 
+	%write('Prolog cardCostume File'), write(File), write(PNo),  %for debug
+	prop('newCostume', JSFkt), 
+	apply(JSFkt, [File, PNo, CardNo, PlacesDef], _).
+
+
+costumePlaces([[0,0],[0,0],[0,1]]). % the first component are dummy
 
 playerNo(player(PNo, _), PNo).
+playerCardsCount(player(_, List), Len) :-
+	length(List, Len).
 	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %       Pengine  - Tau Prolog interface
@@ -144,7 +194,7 @@ playerNo(player(PNo, _), PNo).
 % the answer will be included in Tau database as
 % state(p1, AnswerTerm)
 holdTerm(TauTerm, H) :-
-	% write('Taustate '), write(state(H, TauTerm)), % for debug
+	%write('Taustate '), write(state(H, TauTerm)), % for debug
 	retractall(state(H, _)),
 	asserta(state(H, TauTerm)).
 
@@ -153,15 +203,11 @@ holdTerm(TauTerm, H) :-
 % if all is parsed message is available and can put out
 % here, the SWI Prolog applicaton is designed to bind the Variable MSG
 % with a message to be displayed in use interface
-takeResult([], _, _) :- 
-	state(current, card(Farbe, Name, _)),
-	state(msg, Msg),
-	writeHTML('pout', Msg, String),
-	costume(Farbe, Name),!.
+
 % property list done, last action is to give back the message in msg
-takeResult([], _, _) :- 
-	state(msg, Msg),
-	writeHTML('pout', Msg, String).
+% no drawn card available only send the message
+takeResult([], _, _).
+	
 % takeResult(+Propertylist, +id of the variable containing the js object, -Tau Term)
 % H is one property which is identical to the name of a bound variable in Pengine answer!
 takeResult([H|T], JSObjectID, Term) :-
