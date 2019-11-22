@@ -30,6 +30,8 @@
 
 :- multifile http_json/1.
 
+:- initialization(server(3040)).
+
 http_json:json_type('application/x-javascript').
 http_json:json_type('text/javascript').
 http_json:json_type('text/x-javascript').
@@ -42,6 +44,7 @@ http:location(image, '/graphics', []).
 
 
 server(Port) :- 
+		writef("Starting Server at %d", [Port]),
 		http_server(http_dispatch, [port(Port)]).
 
 
@@ -54,5 +57,5 @@ serve_files(Request) :-
 serve_files(Request) :-
 		http_reply_from_files(image, [], Request).
 
-%serve_files(Request) :-
-%		http_404([\p('Sorry could not find')], Request).
+serve_files(Request) :-
+		http_404([\p('Sorry could not find')], Request).

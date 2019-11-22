@@ -20,10 +20,10 @@
 
 % setup the initial next player and the deck costume
 init :-
+	get_by_id('btStand', Stand),
+	bind(Stand, click, _, standAction),
 	holdTerm(nextPlayer(p1, p2), next),
-	deckCostume, 
-	bankCostume, 
-	write('Tau Prolog: init echt done').
+	write('Tau Prolog: supi  echt done').
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -43,11 +43,79 @@ playAction :-
 	msg2JS('sendPengine', Term).
 	
 % user wants to stop the game
-stopAction :-
-	state(p1, P1),
-	state(p2, P2),
-	Term =.. [stop, P1, P2, 'Flag', 'Msg'],
+standAction :-
+	get_by_id('btStand', Stand),
+	set_attr(Stand, disabled, true), 
+	nextTurn,
+	activePlayer(PA),
+	passivePlayer(PP),
+	Term =.. [banksTurn, PA, PP, 'P1', 'P2', 'Winner', 'Flag', 'Msg'],
 	msg2JS('sendPengine', Term).
+
+stopAction :-
+	get_by_id('btStand', Stand),
+	set_attr(Stand, disabled, true), 
+	state(p1, PA),
+	state(p2, PP),
+	Term =.. [stop, PA, PP, 'Winner', 'Flag', 'Msg'],
+	msg2JS('sendPengine', Term).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Structure Elements of visual representation = costumes
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% costume of the Player itself
+% costume(player No, Name, Orientation, Age)
+% list of cards on table, first card is the player and dealer costume
+% both are not cards, but a graphic element
+
+playerCostume(p1, ['player'], ['up']).
+playerCostume(p2, ['dealer'], ['up']).
+
+%Costumes is a set of 2 lists, one for name, one for orientation
+%costumes(1, [], []).
+%costumes(2, [], []).
+
+% genCostume(Spieleno, Farbe, Name Orientation, -costumeList1, costumeLIst2)
+genCostume(Farbe, Name, O, [File], [O]) :-
+	atomic_list_concat([Farbe, Name], File). 
+
+cardCostume(Farbe, Name, O) :-
+	activePlayer(P),
+	playerNo(P, PNo),
+	genCostume(Farbe, Name, O, NList, OList),
+	appendCostume(PNo, NList, OList).
+
+appendCostume(PNo, NNew, ONew) :-
+	costumes(PNo, NList, OList), 
+	append(NList, NNew, NList2), 
+	append(OList, ONew, OList2),
+	updateCostumes(PNo, NList2, OList2).
+
+% build all costumes again from updated player card list
+refreshCostumes(Pid) :-
+	state(Pid, P),
+	playerNo(P, PNo),
+	playerCostume(Pid, NList, OList),
+	playerCards(P, List), 
+	refreshCards(List, PNo, NList, OList, NList2, OList2),
+	updateCostumes(PNo, NList2, OList2).
+
+refreshCards([], _, A, B, A, B).
+refreshCards([card(Farbe, Name, _, O) | T], PNo, NList, OList, NList3, OList3) :-
+	genCostume(Farbe, Name, O, NNew, ONew),
+	append(NList, NNew, NList2), 
+	append(OList, ONew, OList2),
+	refreshCards(T, PNo, NList2, OList2, NList3, OList3).
+
+
+% make costume list persistent
+updateCostumes(PNo, NewListName, NewListO) :-
+	retractall(costumes(PNo, _, _)),
+	asserta(costumes(PNo, NewListName, NewListO)).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -86,27 +154,58 @@ readHTML(ID, Term) :-
 	read(Stream, Term),
 	close(Stream).
 
-% if next turn a drawn card is available per definition
+% initate Process for drawing the costumes NEu DEFINIEREN
+visCostume(PNo) :-
+	costumes(PNo, CtList1, CtList2),
+	% write('Tau Prolog cardCostume File'), write(File), write(PNo),  %for debug
+	prop('visCostumeJS', JSFkt), 
+	apply(JSFkt, [PNo, CtList1, CtList2], _).
+
+% nach ausgabe aller karten
+gameContinue :-
+	state(flag, start), !,
+	refreshCostumes(p1),
+	refreshCostumes(p2),
+	visCostume(1),
+	visCostume(2),
+	writeHTML('Tauhtml', 'Player: draw or stand', _).
+
+visGame :-
+	refreshCostumes(p1),
+	refreshCostumes(p2),
+	visCostume(1),
+	visCostume(2).
+
+% ende des Spiels
+gameContinue :-
+	state(flag, over),
+	state(winner, Winner),
+	visGame, 
+	stateWinner(Winner, Text),
+	writeHTML('Tauhtml',Text, _),
+	prop('stopGame', JSFkt), 
+	apply(JSFkt, [Winner], _),!.
+% eine Karte gezogen
 gameContinue :-
 	msg2JS('pout'),
-	state(flag, Test),
-	write('State'), write(Test),
-	(state(drawcard, card(Farbe, Name, _)) ->
-		cardCostume(Farbe, Name)
-	),
+	state(drawcard, card(Farbe, Name, _, O)),
+	activePlayerNo(PNo),
+	cardCostume(Farbe, Name, O),
+	visCostume(PNo),
 	gameContinue2.
 
 gameContinue2 :-
-	state(flag, turn),
-	nextTurn.
-
-gameContinue2 :-
-	state(flag, go).
-
-gameContinue2 :-
-	state(flag, stop),
-	stopAction.
+	state(flag, go), 
+	writeHTML('Tauhtml', 'Player: draw or stand', _).
 	
+gameContinue2 :-
+	state(flag, bust),
+	writeHTML('Tauhtml', 'You bust', _),
+	stopAction.
+
+stateWinner(1, 'Winner is Player').
+stateWinner(2, 'Winner is Dealer').
+stateWinner(0, 'No Winner').
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -114,6 +213,9 @@ gameContinue2 :-
 % it is the task of the UI level to determine which player is the active player
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+playerStr(1, 'P1').
+playerStr(2, 'P2').	
 
 % next turn means exchange player
 nextTurn :-
@@ -126,9 +228,6 @@ activePlayerStr(P, PStr) :-
 	playerNo(P, PNum),
 	playerStr(PNum, PStr).
 	
-playerStr(1, 'P1').
-playerStr(2, 'P2').	
-
 % determine the active player
 activePlayer(P) :-
 	state(next, nextPlayer(Pid,_)),
@@ -141,45 +240,26 @@ activePlayerNo :-
 	activePlayerText(PNum, Text),
 	writeHTML('Tauhtml', Text, String).
 
+activePlayerNo(PNo) :-
+	activePlayer(P), 
+	playerNo(P, PNo).
+
 % Player 2 is the bank
 activePlayerText(1, 'Draw a card or stop').	
 activePlayerText(2, 'Bank').
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% Bridge to the visual representation of things
-% 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-deckCostume :-
-	write('create the deck costume'),
-	costume('', 'backside', 1, 0).
-
-bankCostume :-
-	write('create the bank costume'),
-	costume('', 'bank', 2, 0).
-
-
-cardCostume(Farbe, Name) :-
-	activePlayer(P),
-	playerCardsCount(P, CardNo),
-	playerNo(P, PNo),
-	costume(Farbe, Name, PNo, CardNo).
-
-costume(Farbe, Name, PNo, CardNo) :-
-	costumePlaces(PlacesDef),
-	atomic_list_concat([Farbe, Name], File), 
-	%write('Prolog cardCostume File'), write(File), write(PNo),  %for debug
-	prop('newCostume', JSFkt), 
-	apply(JSFkt, [File, PNo, CardNo, PlacesDef], _).
-
-
-costumePlaces([[0,0],[0,0],[0,1]]). % the first component are dummy
+passivePlayer(P) :-
+	state(next, nextPlayer(_,Pid)),
+	state(Pid, P).
 
 playerNo(player(PNo, _), PNo).
+
 playerCardsCount(player(_, List), Len) :-
 	length(List, Len).
+
+playerCards(player(_, List), List).
+
+
 	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %       Pengine  - Tau Prolog interface
@@ -194,7 +274,7 @@ playerCardsCount(player(_, List), Len) :-
 % the answer will be included in Tau database as
 % state(p1, AnswerTerm)
 holdTerm(TauTerm, H) :-
-	%write('Taustate '), write(state(H, TauTerm)), % for debug
+	% write('Taustate '), write(state(H, TauTerm)), % for debug
 	retractall(state(H, _)),
 	asserta(state(H, TauTerm)).
 
