@@ -41,6 +41,7 @@
   			// that  have to be at the end ! the JS objects shall exist if init prolog
   			// now start and initialize all the Prolog stuff
 			init_Prolog();
+			$("#Taumsg").text('');
 		}
 
 		// processing main draw function
@@ -69,7 +70,7 @@
   				costumes[player2][i].draw();	
   			}
 
-  			aMessage.message( $("#Tauhtml").text());
+  			aMessage.message( $("#Taumsg").text());
   			aMessage.draw(); 
   			
 		}
@@ -107,14 +108,6 @@
  		}
 
  		function stopGame(Winner){
- 			console.log("The winner is" + Winner);
- 			
- 			if (Winner == 1) {
- 				aMessage.text('Player wins');
- 			}
- 			else {
- 				aMessage.text('Dealer wins');
- 			 }
  			costumes[player1][0].deactivate();
  			costumes[player2][0].deactivate();
  		}
@@ -128,9 +121,10 @@
 	
 	<div id="playarea">
 
-		<h1>Demo game Black Jack</h1>
+		<h1>Prolog Black Jack</h1>
 		</p>
-		<h3>This simple game is intended as example for projects using SWI Prolog, its Pengines library and Tau-Prolog. Graphics is done with Processing. Click on the deck for drawing a card or click Stop button to give control to bank</h3>
+		This simple Black Jack game is intended as example for projects using <a href="http://www.swi-prolog.org">SWI Prolog</a>, its Pengines library and <a href="http://www.tau-prolog.org"> Tau-Prolog</a>. Graphics is done with Processing. This is no Casino game, there is nothing to win and no purpose. It's just a demo - for fun. Soucecode is available at <a href="https://github.com/hnbeck/ecblackjack">https://github.com/hnbeck/ecblackjack</a> with no warranties. <p>
+		Click on the deck for drawing a card or click "Stand"-button to give the dealer the control. Do a page refresh for a new game.
 		<p>
 		<button id='btStand'>Stand</button>
 		<p>
@@ -151,6 +145,8 @@
 		 <div id="Tauout"></div>
 		 </p>
 		 <div id="Tauhtml">Tau terms</div>
+		 </p>
+		 <div id="Taumsg">Tau terms</div>
 
 	</div>
 </p>

@@ -23,7 +23,7 @@ init :-
 	get_by_id('btStand', Stand),
 	bind(Stand, click, _, standAction),
 	holdTerm(nextPlayer(p1, p2), next),
-	write('Tau Prolog: supi  echt done').
+	write('Tau Prolog: done').
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -168,7 +168,7 @@ gameContinue :-
 	refreshCostumes(p2),
 	visCostume(1),
 	visCostume(2),
-	writeHTML('Tauhtml', 'Player: draw or stand', _).
+	writeHTML('Taumsg', 'Player: draw or stand', _).
 
 visGame :-
 	refreshCostumes(p1),
@@ -182,7 +182,7 @@ gameContinue :-
 	state(winner, Winner),
 	visGame, 
 	stateWinner(Winner, Text),
-	writeHTML('Tauhtml',Text, _),
+	writeHTML('Taumsg',Text, _),
 	prop('stopGame', JSFkt), 
 	apply(JSFkt, [Winner], _),!.
 % eine Karte gezogen
@@ -196,11 +196,11 @@ gameContinue :-
 
 gameContinue2 :-
 	state(flag, go), 
-	writeHTML('Tauhtml', 'Player: draw or stand', _).
+	writeHTML('Taumsg', 'Player: draw or stand', _).
 	
 gameContinue2 :-
 	state(flag, bust),
-	writeHTML('Tauhtml', 'You bust', _),
+	writeHTML('Taumsg', 'You bust', _),
 	stopAction.
 
 stateWinner(1, 'Winner is Player').
@@ -238,7 +238,7 @@ activePlayerNo :-
 	activePlayer(P), 
 	playerNo(P, PNum),
 	activePlayerText(PNum, Text),
-	writeHTML('Tauhtml', Text, String).
+	writeHTML('Taumsg', Text, String).
 
 activePlayerNo(PNo) :-
 	activePlayer(P), 

@@ -8,18 +8,32 @@
 	display: none;
 }
 #playarea {
+
+	background-color: #E8E8E8; 
 	width:800px; 
 	margin-left: auto; 
 	margin-right: auto;
 	margin-top: 5px;
 	margin-bottom: 10px;
+	text-align: left; 
+	font-family: helvetica;
+	font-size: 0.95em;
+
+}
+
+h1 {
+	background-color: #E0E0E0; 
+	text-align: center; 
+	font-weight: bolder; 
+	font-family: helvetica;
+	padding: : 20px;
 }
 
 #pout {
 	padding:20px; 
 	border-color:blue; 
 	background-color: lightgray;
-	display: block;
+	display: none;
 }
 
 #Tauout {
@@ -34,25 +48,31 @@
 	background-color: lightgreen;
 }
 
+#Taumsg {
+	padding:20px; 
+	border-color:black; 
+	background-color: lightgreen;
+}
+
 button {
 	width : 100px; 
 	height : 40px;
 }
 
 
-#btStop {
-	background-color: red;
-	border-color: red;
+#btStand{
+	background-color: gold;
+	border-color: gold;
 	border-radius: 5px;
 	font-weight: bold;
 }
 
-#btStop:disabled {
+#btStand:disabled {
 	background-color: gray;
-	border-color: red;
+	border-color: gray;
 	border-radius: 5px;
 	font-weight: bold;
-	font-color : yellow;
+	font-color : gray;
 }
 
 body {

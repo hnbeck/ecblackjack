@@ -234,7 +234,6 @@
   					this.cardFrame[cWidth],
   					this.cardFrame[cHeight]);
 				}
-			
 			}
 
 			touch(aX, aY ){
@@ -255,7 +254,6 @@
 			}
 
 			orientation(OrientationRequest){
-
 				this.upFlag = OTranslator[OrientationRequest];
 			}
 		}

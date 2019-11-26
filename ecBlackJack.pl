@@ -141,10 +141,18 @@ playCard(P1, P2, _, over, Msg) :-
 bankStrategy(player(N, Field), player(N, Field2), Msg) :-
 	stopCondition(Field, Flag),
 	(Flag = go ->
-		playCard(player(N, Field), player(N, Field2),_, _, Msg);
-		Field2 = Field
+		lastDrawStrategy(player(N, Field), player(N, Field2), Msg);
+		Field2 = Field,
+		Msg = ''
 	).
 
+lastDrawStrategy(player(N, Field), player(N, Field2), Msg) :-
+	cardsSum(Field, Points),
+	(Points < 17 ->
+		playCard(player(N, Field), player(N, Field2),_, _, Msg);
+		Field2 = Field,
+		Msg = ''
+	).
 % Kommando: game over, can be triggerd by player or system
 % stop(+P1: a player, -P2: changed player, -Flag: stop or continue, -Msg: Message)
 % if player 1 was active player
