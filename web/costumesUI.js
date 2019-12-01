@@ -10,6 +10,7 @@
 		var costumes; 
 		var aDeskFrame; 
 		var aMessage; 
+		var aBing; 
 		
 		// useful constants
 		// index constants
@@ -177,18 +178,15 @@
 				for (var iy = firstLampY-lampDia; iy <= deskHeight - lampDia; iy += lampDia)
 				{
 					this.lamps.push(new Lamp(lastPosX, iy, col, frame));
-					lastPosY = iy; 
-
+					lastPosY = iy;
 				}
 				for (ix = lastPosX; ix >= firstLampX;  ix -= lampDia)
 				{
 					this.lamps.push(new Lamp(ix, firstLampY+(deskHeight-lampDia), col, frame));
-	
 				}
 				for (iy = lastPosY; iy >= firstLampY-lampDia;  iy -= lampDia)
 				{
 					this.lamps.push(new Lamp(firstLampX, iy, col, frame));
-	
 				}
 			}
 
@@ -204,36 +202,68 @@
 		// costume of a card
 		class Costume {
 			constructor(cardName, cardNo, playerNo, frameFkt, deskFrame) {
-				
+				const noSteps = 20;
 				this.cardFrame = frameFkt(cardNo, playerNo, deskFrame);
+				this.sourceFrame = frameFkt(0, 2, deskFrame); 
 				this.imgUp = loadImage('/graphics/'+cardName+'.png');
 				this.imgDown = loadImage('/graphics/backside.png');
 				this.owner = playerNo;  
 				this.name = cardName; 
 				this.inactive = false; 
 				this.upFlag = true; 
+				this.angle = 0; 
+				var deltaX =  this.cardFrame[cX] - this.sourceFrame[cX];
+				var deltaY =  this.cardFrame[cY] - this.sourceFrame[cY];
+				this.slope =  deltaY / deltaX;
+				this.step = deltaX / noSteps; 
+				this.posX = this.sourceFrame[cX];
+				this.posY = this.sourceFrame[cY];
+				this.deltaAngle = 360/noSteps; 
 				
 				//console.log('costume name is: ' + cardName);
 				//console.log('costume cX ' + this.cardFrame[cX] + ' cy ' + this.cardFrame[cY]);
 				//console.log("Costume initialization done");
+				console.log('Slope ', this.slope);
 			}
 
 			draw() {
-
+			
+				push();
+			
+				if (abs(this.posX - this.cardFrame[cX]) > 0.01) {
+					this.posX = this.posX + this.step; 
+					this.posY = this.posY + this.slope*this.step;
+					this.angle += this.deltaAngle;
+				}
+				else
+				{
+					if (this.deltaAngle != 0)
+					{
+						aBing.play(); 
+						this.deltaAngle = 0; 
+					}
+					
+				}
+				
+				translate(this.posX+this.cardFrame[cWidth]/2,this.posY +this.cardFrame[cHeight]/2);
+				rotate(this.angle);
+				translate(-this.cardFrame[cWidth]/2, -this.cardFrame[cHeight]/2);
+				
 				if (this.upFlag == true){
 					image(this.imgUp, 
-  					this.cardFrame[cX], 
-  					this.cardFrame[cY], 
+  					0, 
+  					0, 
   					this.cardFrame[cWidth],
   					this.cardFrame[cHeight]);
 				}
 				else {
 					image(this.imgDown, 
-  					this.cardFrame[cX], 
-  					this.cardFrame[cY], 
+  					0, 
+  					0, 
   					this.cardFrame[cWidth],
   					this.cardFrame[cHeight]);
 				}
+				pop(); 
 			}
 
 			touch(aX, aY ){
