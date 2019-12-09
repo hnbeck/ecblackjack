@@ -19,7 +19,18 @@
 		//////////////// Processing code -> graphics ////////////////////
 
 		
-
+		function preload() {
+		
+			winSound = loadSound('/web/gewonnen.mp3'); 
+			loseSound = loadSound('/web/verloren.mp3'); 
+			cardDrawSound = loadSound('/web/karteziehen.mp3');  
+			cardSetSound = loadSound('/web/karteliegt.mp3'); 
+			clickSound = loadSound('/web/click.mp3'); 
+			winSound.playMode('restart');
+			loseSound.playMode('restart');
+			cardDrawSound.playMode('restart');
+			cardSetSound.playMode('restart');
+		}
 		// setup the geometric things
 		function setup() {
 			// init the costumes
@@ -29,8 +40,7 @@
 			costumes[player2] = [];
 			angleMode(DEGREES);
 
-			aBing = loadSound('/web/bing.mp3');
-
+			
 			// the main desk
 			aDeskFrame = deskFrame(canvasW, canvasH);
 			aDesk = new Desk(aDeskFrame);
@@ -46,6 +56,7 @@
   			// now start and initialize all the Prolog stuff
 			init_Prolog();
 			$("#Taumsg").text('');
+
 		}
 
 		// processing main draw function
@@ -114,7 +125,18 @@
  		function stopGame(Winner){
  			costumes[player1][0].deactivate();
  			costumes[player2][0].deactivate();
+ 	
+ 			if (Winner == 2) {
+ 				setTimeout(function(){loseSound.play();}, 1800);
+ 			} else {
+ 				setTimeout(function(){winSound.play();}, 1800);
+ 			}
  		}
+
+ 	 	function playClick() {
+ 			clickSound.play(); 
+ 		}
+
 	</script>
 
 
@@ -130,7 +152,7 @@
 		This simple Black Jack game is intended as example for projects using <a href="http://www.swi-prolog.org">SWI Prolog</a>, its Pengines library and <a href="http://www.tau-prolog.org"> Tau-Prolog</a>. Graphics is done with Processing. This is no Casino game, there is nothing to win and no purpose. It's just a demo - for fun. Soucecode is available at <a href="https://github.com/hnbeck/ecblackjack">https://github.com/hnbeck/ecblackjack</a> with no warranties. <p>
 		Click on the deck for drawing a card or click "Stand"-button to give the dealer the control. Do a page refresh for a new game.
 		<p>
-		<button id='btStand'>Stand</button>
+		<button id='btStand' onclick="playClick()">Stand</button>
 		<p>
 		<div id='p1Container'></div>	
 		</p>

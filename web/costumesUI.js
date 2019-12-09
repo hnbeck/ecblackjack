@@ -10,7 +10,10 @@
 		var costumes; 
 		var aDeskFrame; 
 		var aMessage; 
-		var aBing; 
+		var winSound; 
+		var loseSound; 
+		var cardDrawSound; 
+		var cardSetSound; 
 		
 		// useful constants
 		// index constants
@@ -219,11 +222,17 @@
 				this.posX = this.sourceFrame[cX];
 				this.posY = this.sourceFrame[cY];
 				this.deltaAngle = 360/noSteps; 
-				
+				if (cardNo > 0) {
+					if (clickSound.isPlaying()) {
+						setTimeout(function(){cardDrawSound.play();},600);
+					} else {
+						cardDrawSound.play(); 
+					}
+				}
 				//console.log('costume name is: ' + cardName);
 				//console.log('costume cX ' + this.cardFrame[cX] + ' cy ' + this.cardFrame[cY]);
 				//console.log("Costume initialization done");
-				console.log('Slope ', this.slope);
+				//console.log('Slope ', this.slope);
 			}
 
 			draw() {
@@ -239,7 +248,7 @@
 				{
 					if (this.deltaAngle != 0)
 					{
-						aBing.play(); 
+						cardSetSound.play(); 
 						this.deltaAngle = 0; 
 					}
 					
