@@ -18,9 +18,7 @@
 
 		//////////////// Processing code -> graphics ////////////////////
 
-		
 		function preload() {
-		
 			winSound = loadSound('/web/gewonnen.mp3'); 
 			loseSound = loadSound('/web/verloren.mp3'); 
 			cardDrawSound = loadSound('/web/karteziehen.mp3');  
@@ -40,7 +38,6 @@
 			costumes[player2] = [];
 			angleMode(DEGREES);
 
-			
 			// the main desk
 			aDeskFrame = deskFrame(canvasW, canvasH);
 			aDesk = new Desk(aDeskFrame);
@@ -52,30 +49,23 @@
   			gameCanvas.parent('p1Container')
   			frameRate(30);
 
-  			// that  have to be at the end ! the JS objects shall exist if init prolog
+  			// that has to be at the end ! the JS objects shall exist if init prolog runs
   			// now start and initialize all the Prolog stuff
 			init_Prolog();
 			$("#Taumsg").text('');
-
 		}
 
-		// processing main draw function
+		// Processing main draw function
 		function draw() {
 
 			aDesk.draw();
 			lights.draw();
-		
-
-			// query the active player, result is in Tauhtml
-			//session.query('activePlayerNo.');
-			//session.answer(printAnswer);
-			//var text = $("#Tauhtml").text();
 
 			var index; 
-
 			var maxCostumes1 = costumes[player1].length;
 			var maxCostumes2 = costumes[player2].length;
 		
+			// draw all the costumes = cards
   			for (var i = 0; i < maxCostumes1; i++)
   			{
   				costumes[player1][i].draw();	
@@ -84,12 +74,12 @@
   			{
   				costumes[player2][i].draw();	
   			}
-
+  			// draw the messages
   			aMessage.message( $("#Taumsg").text());
   			aMessage.draw(); 
-  			
 		}
  		
+ 		// player clicks on deck to draw a card
  		function mouseClicked(){
 
  			if (costumes[player2][0].touch(mouseX, mouseY))
@@ -99,10 +89,12 @@
  			}
  		}
 
- 		//////  interface Prolog to Graphics
+ 		//////////////  interface Prolog to Graphics ///////////////////////////
+
+ 		// create or update the costumes according to the structure prescribed from Tau Prolog
  		function visCostumeJS(playerNo, ctNameList, ctOList) {
  			// the sequence of cards doesnt change
- 			// in this game the is no move of cards from one place to another
+ 			// in this game there is no move of cards from one place to another
  			var noCostumes = costumes[playerNo].length;
 
  			//console.log("new Costume: " + ctNameList + ", Orientation " + ctOList); 
@@ -110,22 +102,25 @@
 			//console.log("Player: " + playerNo);
 
 			for (var i = 0; i < ctNameList.length; i++){
-			
 				// costume doesnt exist
 				if (i >= noCostumes){
 					currentCostume = new Costume(ctNameList[i], i, playerNo,  cardFrame, aDeskFrame);
 					currentCostume.orientation(ctOList[i]);
 					costumes[playerNo].push(currentCostume);
 				} else {
+					// costume update, which can be in this game only the orientation
 					costumes[playerNo][i].orientation(ctOList[i]);
 				}
 			}
  		}
 
+ 		// End of the game
  		function stopGame(Winner){
+ 			// deactivate possibility to click
  			costumes[player1][0].deactivate();
  			costumes[player2][0].deactivate();
  	
+ 			// play the sounds depending from winner
  			if (Winner == 2) {
  				setTimeout(function(){loseSound.play();}, 1800);
  			} else {
@@ -133,20 +128,18 @@
  			}
  		}
 
+ 		// click sound of button
  	 	function playClick() {
  			clickSound.play(); 
  		}
 
 	</script>
 
-
 	<title> Demo game Black Jack </title>
 	
 </head>
 <body>
-	
 	<div id="playarea">
-
 		<h1>Prolog Black Jack</h1>
 		</p>
 		This simple Black Jack like game is intended as example for projects using <a href="http://www.swi-prolog.org">SWI Prolog</a>, its Pengines library and <a href="http://www.tau-prolog.org"> Tau-Prolog</a>. Graphics is done with <a href="https://p5js.org/">JS Processing variant p5js</a>. This is no Casino game, there is nothing to win and no purpose. It's just a demo - for experimenting with. Soucecode is available at <a href="https://github.com/hnbeck/ecblackjack">https://github.com/hnbeck/ecblackjack</a> with no warranties. <p>
@@ -173,7 +166,6 @@
 		 <div id="Tauhtml">Tau terms</div>
 		 </p>
 		 <div id="Taumsg">Tau terms</div>
-
 	</div>
 </p>
 	
