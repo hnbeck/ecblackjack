@@ -30,7 +30,7 @@
 
 :- multifile http_json/1.
 
-:- initialization(server(3040)).
+:- initialization(server(7007)).
 
 http_json:json_type('application/x-javascript').
 http_json:json_type('text/javascript').

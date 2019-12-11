@@ -8,7 +8,6 @@
 % as response to user actions
 % 
 % Author: Hans N. Beck (c)
-% Last Change: 30.10.2019
 %
 % License: MIT 
 %
