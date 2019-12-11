@@ -2,9 +2,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Tau Prolog code for the Prolog part in the browser
-% This is the bridge between the graphics in Processing and user and the
+% This is the bridge between the graphics in Processing (P5js) and user and the
 % the game itself provided by the Prolog server (SWI Prolog via Pengines)
-% It takes player information from Pengine and triggers querys to Pengine
+% It takes information from Pengine and triggers querys to Pengine
 % as response to user actions
 % 
 % Author: Hans N. Beck (c)
@@ -32,17 +32,25 @@ init :-
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% user want to play a card - build the Prolog query to be sent over Pengine
-% The identifier between '' are unbound variables bind by Prolog
-% and the terms binded will be stored in Tau Prolog associated with this identifier
-% Example "Current" will be bound with the card(...) drawn and stored in 
-% Tau Prolog as state(current, card(...)
+% principle: the query contains bounded variables (bounded via Tau)
+% Strings indicating unbounded variable names and of course - as first element -
+% the name of the functor in SWI Prolog.
+% the functor will be queried via Pengine. The bounded variables are Tau Prolog
+% terms which are stringified. The variable names will be bound by the 
+% SWI Prolog query. These are returned as JSON Objects and will addad to the Tau
+% Prolog knowledge base. 
+
+% Example "Current" will be bound by SWI Prolog with the card(...) drawn.
+% The terhm card(...) will be added to the Tau prolog knowledge base as 
+% state(current, card(...)) via the takeResult predicate here. 
+
+% trigger drawing a card by the player
 playAction :-
 	activePlayerStr(P, PResultStr),
 	Term =.. [playCard, P, PResultStr, 'DrawCard', 'Flag', 'Msg'],
 	msg2JS('sendPengine', Term).
 	
-% user wants to stop the game
+% user wants to stand (give control to dealer)
 standAction :-
 	get_by_id('btStand', Stand),
 	set_attr(Stand, disabled, true), 
@@ -52,6 +60,7 @@ standAction :-
 	Term =.. [banksTurn, PA, PP, 'P1', 'P2', 'Winner', 'Flag', 'Msg'],
 	msg2JS('sendPengine', Term).
 
+% last thing in the game: show the winner. Ask SWI Prolog for the winner
 stopAction :-
 	get_by_id('btStand', Stand),
 	set_attr(Stand, disabled, true), 
@@ -66,35 +75,34 @@ stopAction :-
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% costume of the Player itself
-% costume(player No, Name, Orientation, Age)
 % list of cards on table, first card is the player and dealer costume
-% both are not cards, but a graphic element
-
+% both are not cards in strict sense, but a graphic element
+% there are  in fact two lists: a list of names, a list of corresponding orientation
 playerCostume(p1, ['player'], ['up']).
 playerCostume(p2, ['dealer'], ['up']).
 
-%Costumes is a set of 2 lists, one for name, one for orientation
-%costumes(1, [], []).
-%costumes(2, [], []).
-
-% genCostume(Spieleno, Farbe, Name Orientation, -costumeList1, costumeLIst2)
+% determine the costume by calculate the file name of the graphic file
+% +Farbe card color, given by SWI Prolog +Name: Bube, Dame, 10, 9 etc...
 genCostume(Farbe, Name, O, [File], [O]) :-
 	atomic_list_concat([Farbe, Name], File). 
 
+% costume of a card 
+% + Farbe card Color, +Name card name, +O Orientation (up or down)
 cardCostume(Farbe, Name, O) :-
 	activePlayer(P),
 	playerNo(P, PNo),
 	genCostume(Farbe, Name, O, NList, OList),
 	appendCostume(PNo, NList, OList).
 
+% add costume to the list of cards on desk
+% +PNo: player number, +NNew / +ONew Name and orienation of new costume 
 appendCostume(PNo, NNew, ONew) :-
 	costumes(PNo, NList, OList), 
 	append(NList, NNew, NList2), 
 	append(OList, ONew, OList2),
 	updateCostumes(PNo, NList2, OList2).
 
-% build all costumes again from updated player card list
+% build all costumes again from updated player card list provided by SWI Prolog
 refreshCostumes(Pid) :-
 	state(Pid, P),
 	playerNo(P, PNo),
@@ -154,14 +162,16 @@ readHTML(ID, Term) :-
 	read(Stream, Term),
 	close(Stream).
 
-% initate Process for drawing the costumes NEu DEFINIEREN
+% initate Process for drawing the costumes, call a JS function for drawing
+% +PNo Player no
 visCostume(PNo) :-
 	costumes(PNo, CtList1, CtList2),
 	% write('Tau Prolog cardCostume File'), write(File), write(PNo),  %for debug
 	prop('visCostumeJS', JSFkt), 
 	apply(JSFkt, [PNo, CtList1, CtList2], _).
 
-% nach ausgabe aller karten
+%%%%% state processing - how to continue the came after a draw or stand?
+% after set up the game
 gameContinue :-
 	state(flag, start), !,
 	refreshCostumes(p1),
@@ -170,13 +180,14 @@ gameContinue :-
 	visCostume(2),
 	writeHTML('Taumsg', 'Player: draw or stand', _).
 
+% draw to complete updated costume list
 visGame :-
 	refreshCostumes(p1),
 	refreshCostumes(p2),
 	visCostume(1),
 	visCostume(2).
 
-% ende des Spiels
+% if game is over (someone wins)
 gameContinue :-
 	state(flag, over),
 	state(winner, Winner),
@@ -185,7 +196,8 @@ gameContinue :-
 	writeHTML('Taumsg',Text, _),
 	prop('stopGame', JSFkt), 
 	apply(JSFkt, [Winner], _),!.
-% eine Karte gezogen
+
+% after drawing a card
 gameContinue :-
 	msg2JS('pout'),
 	state(drawcard, card(Farbe, Name, _, O)),
@@ -194,15 +206,18 @@ gameContinue :-
 	visCostume(PNo),
 	gameContinue2.
 
+% player can continue, all is fine
 gameContinue2 :-
 	state(flag, go), 
 	writeHTML('Taumsg', 'Player: draw or stand', _).
-	
+
+% player is bust
 gameContinue2 :-
 	state(flag, bust),
 	writeHTML('Taumsg', 'You bust', _),
 	stopAction.
 
+% text for the winner message
 stateWinner(1, 'Winner is Player').
 stateWinner(2, 'Winner is Dealer').
 stateWinner(0, 'No Winner').
@@ -222,18 +237,20 @@ nextTurn :-
 	state(next, nextPlayer(A, B)), 
 	holdTerm(nextPlayer(B, A), next).
 
-% exchange P1, P2
+% transform a player term to a player string for query building
+% +P a player 
 activePlayerStr(P, PStr) :-
 	activePlayer(P),
 	playerNo(P, PNum),
 	playerStr(PNum, PStr).
 	
 % determine the active player
+% -P active player (as term)
 activePlayer(P) :-
 	state(next, nextPlayer(Pid,_)),
 	state(Pid, P).
 
-% determine the active player
+% determine the number of active player
 activePlayerNo :-
 	activePlayer(P), 
 	playerNo(P, PNum),
@@ -244,23 +261,26 @@ activePlayerNo(PNo) :-
 	activePlayer(P), 
 	playerNo(P, PNo).
 
-% Player 2 is the bank
+% text for the player to display if it is active
 activePlayerText(1, 'Draw a card or stop').	
 activePlayerText(2, 'Bank').
 
+% get active playerCards
 passivePlayer(P) :-
 	state(next, nextPlayer(_,Pid)),
 	state(Pid, P).
 
+% get player number out of player term
 playerNo(player(PNo, _), PNo).
 
+% number of player cards
 playerCardsCount(player(_, List), Len) :-
 	length(List, Len).
 
+% access player card list
 playerCards(player(_, List), List).
 
 
-	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %       Pengine  - Tau Prolog interface
 %

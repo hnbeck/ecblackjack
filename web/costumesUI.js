@@ -5,6 +5,8 @@
 // contains all code for implementing the costumes and interaction
 //
 // (c) Hans N. Beck
+// 
+// License: MIT 
 ///////////////////////////////////////////////////////////////////////////////
 
 // the Prolog engines
