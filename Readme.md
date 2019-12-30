@@ -8,7 +8,7 @@ The idea is to test a web browser based interface for a SWI-Prolog applications 
 
 ## Usage
 
-You need a SWI Prolog 8.x.x installation. Start the file ecBJServer.pl to start the server. In the web browser head to http://localhost:7007 to start the game.
+You need a SWI Prolog 8.x.x installation. Start the file ecBJServer.pl to start the server. In the web browser head to http://localhost:7007 to start the game. If graphics does not come not up just reload.
 
 ## License
 

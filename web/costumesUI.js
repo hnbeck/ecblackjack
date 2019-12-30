@@ -329,6 +329,7 @@ function handleCreate() {
 	session.query("init.");
 	session.answer(printAnswer);
 	$("#Tauhtml").text('');
+
 	// call the init of the game at SWI Prolog
 	pengine.ask('createGame(P1, P2, Flag, Msg)');
 }
