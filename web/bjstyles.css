@@ -1,0 +1,80 @@
+
+#testblock {
+	width:600px; 
+	margin-left: auto; 
+	margin-right: auto;
+	margin-top: 20px;
+	flex-flow: center; 
+	display: none;
+}
+#playarea {
+
+	background-color: #E8E8E8; 
+	width:800px; 
+	margin-left: auto; 
+	margin-right: auto;
+	margin-top: 5px;
+	margin-bottom: 10px;
+	text-align: left; 
+	font-family: helvetica;
+	font-size: 0.95em;
+
+}
+
+h1 {
+	background-color: #E0E0E0; 
+	text-align: center; 
+	font-weight: bolder; 
+	font-family: helvetica;
+	padding: : 20px;
+}
+
+#pout {
+	padding:20px; 
+	border-color:blue; 
+	background-color: lightgray;
+	display: none;
+}
+
+#Tauout {
+	padding:20px; 
+	border-color:black; 
+	background-color: lightblue;
+}
+
+#Tauhtml {
+	padding:20px; 
+	border-color:black; 
+	background-color: lightgreen;
+}
+
+#Taumsg {
+	padding:20px; 
+	border-color:black; 
+	background-color: lightgreen;
+}
+
+button {
+	width : 100px; 
+	height : 40px;
+}
+
+
+#btStand{
+	background-color: gold;
+	border-color: gold;
+	border-radius: 5px;
+	font-weight: bold;
+}
+
+#btStand:disabled {
+	background-color: gray;
+	border-color: gray;
+	border-radius: 5px;
+	font-weight: bold;
+	font-color : gray;
+}
+
+body {
+	background-color: #F0F0F0;
+}

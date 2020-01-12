@@ -1,117 +1,137 @@
 <!--- Java script and HTML implementation fo the GUI ----------------------->
 <!---- Autor: Hans N. Beck  (c) -------------------------------------------->
-<!-
+<!---- License: MIT -------------------------------------------------------->
 
 <!DOCTYPE html >
 <html>
 <head>
+	<meta charset="UTF-8" />
+	 <link rel="stylesheet" href="/web/bjstyles.css">
+
 	<script src="/web/jquery-1.11.3.min.js"  type="text/javascript"></script>
 	<script src="/web/tau-prolog.js" type="text/javascript"></script>
 	<script src="/web/pengines.js" type="text/javascript"></script>
-
+	<script src="/web/p5.min.js" type="text/javascript"></script>
+	<script src="/web/p5.sound.js" type="text/javascript"></script>
+	<script src="/web/costumesUI.js" type="text/javascript"></script>
 	<script type="text/javascript">
-		var panswer; // the answer of pengine request is stored globally to make things easy
 
-		// initate a Pengine 
-		var pengine = new Pengine({
-			oncreate: handleCreate, 
-			onsuccess: handleOutput
-		}); 
+		//////////////// Processing code -> graphics ////////////////////
 
-		// here are the Pengine handle functions
-		function handleCreate() {
-			pengine.ask('playGame(P1, P2)');
-			// load some initial Tau Prolog code
+		function preload() {
+			winSound = loadSound('/sound/gewonnen.mp3'); 
+			loseSound = loadSound('/sound/verloren.mp3'); 
+			cardDrawSound = loadSound('/sound/karteziehen.mp3');  
+			cardSetSound = loadSound('/sound/karteliegt.mp3'); 
+			clickSound = loadSound('/sound/click.mp3'); 
+			winSound.playMode('restart');
+			loseSound.playMode('restart');
+			cardDrawSound.playMode('restart');
+			cardSetSound.playMode('restart');
 		}
-		function handleOutput(){
-			// store the answer into global variable for later analysis
-			panswer = this.data[0]["P1"];
-			// write output for control into html element
-			$("#pout").html(JSON.stringify(panswer));
+		// setup the geometric things
+		function setup() {
+			// init the costumes
+			costumes = [3];
+			costumes[0] = 0; // dummy
+			costumes[player1] = []; 
+			costumes[player2] = [];
+			angleMode(DEGREES);
+
+			// the main desk
+			aDeskFrame = deskFrame(canvasW, canvasH);
+			aDesk = new Desk(aDeskFrame);
+  			lights = new LampLine(aDeskFrame); 
+  			aMessage = new Message('Start Game', cardFrame, aDeskFrame);
+
+  			// connect the canvas to DOM
+  			gameCanvas = createCanvas(canvasW, canvasH);
+  			gameCanvas.parent('p1Container')
+  			frameRate(30);
+
+  			// that has to be at the end ! the JS objects shall exist if init prolog runs
+  			// now start and initialize all the Prolog stuff
+			init_Prolog();
+			$("#Taumsg").text('');
 		}
 
-		// Callback needed for triggering and displaying answers of Tau prolog querys
-		var printAnswer = function(answer){
-			$("#Tauout").html(pl.format_answer(answer));
-			console.log(answer);
-		}
+		// Processing main draw function
+		function draw() {
 
-		function analyse() {
-			var session = pl.create(1000);
-			session.consult("htmlIO.pl");
-			session.consult("analyse.pl");
-			session.query("analyse(panswer, Term).");
-			session.answer(printAnswer);
-		}
-			function test() {
-			var session = pl.create(1000);
-			session.consult("htmlIO.pl");
-			session.query("fact(A,B), writeHTML(fact(A,disc), String).");
-			session.answer(printAnswer);
-		}
+			aDesk.draw();
+			lights.draw();
 
-	</script>
-
-	<!-- Here some Tau Prolog scripts -->
-
-	<script id="htmlIO.pl" type="text/prolog">
+			var index; 
+			var maxCostumes1 = costumes[player1].length;
+			var maxCostumes2 = costumes[player2].length;
 		
-		:- use_module(library(dom)).
+			// draw all the costumes = cards
+  			for (var i = 0; i < maxCostumes1; i++)
+  			{
+  				costumes[player1][i].draw();	
+  			}
+  			for (var i = 0; i < maxCostumes2; i++)
+  			{
+  				costumes[player2][i].draw();	
+  			}
+  			// draw the messages
+  			aMessage.message( $("#Taumsg").text());
+  			aMessage.draw(); 
+		}
+ 		
+ 		// player clicks on deck to draw a card
+ 		function mouseClicked(){
 
-		fact(world, sphere).
+ 			if (costumes[player2][0].touch(mouseX, mouseY))
+ 			{
+ 				session.query('playAction.');
+ 				session.answer(printAnswer);
+ 			}
+ 		}
 
-		% +Term : a Tau Prolog term
-		% -HMTLString : the term as String
-		writeHTML(Term, HTMLString) :-
-			get_by_id('Tauhtml', HTML),
-			open(HTML, write, Stream), 
-			write(Stream, Term),
-			close(Stream),
-			get_html(HTML, HTMLString).
+ 		//////////////  interface Prolog to Graphics ///////////////////////////
 
-		% -Term : a Tau Prolog Term
-		readHTML(Term) :-
-			get_by_id('TauInput', HTML),
-			open(HTML, read, Stream), 
-			read(Stream, Term),
-			clode(Stream).
+ 		// create or update the costumes according to the structure prescribed from Tau Prolog
+ 		function visCostumeJS(playerNo, ctNameList, ctOList) {
+ 			// the sequence of cards doesnt change
+ 			// in this game there is no move of cards from one place to another
+ 			var noCostumes = costumes[playerNo].length;
 
-	</script>
+ 			//console.log("new Costume: " + ctNameList + ", Orientation " + ctOList); 
+			//console.log("max Costumes:" + noCostumes+ " List: " + ctNameList.length);
+			//console.log("Player: " + playerNo);
 
-	<script id="analyse.pl" type="text/prolog">
-		:- use_module(library(dom)).
-		:- use_module(library(js)).
-		:- use_module(library(lists)).
+			for (var i = 0; i < ctNameList.length; i++){
+				// costume doesnt exist
+				if (i >= noCostumes){
+					currentCostume = new Costume(ctNameList[i], i, playerNo,  cardFrame, aDeskFrame);
+					currentCostume.orientation(ctOList[i]);
+					costumes[playerNo].push(currentCostume);
+				} else {
+					// costume update, which can be in this game only the orientation
+					costumes[playerNo][i].orientation(ctOList[i]);
+				}
+			}
+ 		}
 
-		% +JSObjectID: an reference to a JS object containing the answer of a Pengine query
-		% -TauTerm: the Pengine answer as Tau Prolog Term
-		analyse(JSObjectID, TauTerm) :-
-			prop('Array', Array),
-			prop(JSObjectID, JSObject),
-			parseTerm(JSObject, TauTerm),
-			writeHTML(TauTerm, String),
-			write(String).
+ 		// End of the game
+ 		function stopGame(Winner){
+ 			// deactivate possibility to click
+ 			costumes[player1][0].deactivate();
+ 			costumes[player2][0].deactivate();
+ 	
+ 			// play the sounds depending from winner
+ 			if (Winner == 2) {
+ 				setTimeout(function(){loseSound.play();}, 1800);
+ 			} else {
+ 				setTimeout(function(){winSound.play();}, 1800);
+ 			}
+ 		}
 
-		parseTerm(Elem, _) :- var(Elem).
-
-		parseTerm(JSObject, TauTerm) :-
-			prop(JSObject, args, ArgList),
-			prop(JSObject, functor, Functor),
-			parseList(ArgList, TermList),
-			append([Functor], TermList, TermList2),
-			TauTerm =.. TermList2.
-
-		parseList([], []).
-
-		parseList([Head | Tail ], [Head2 | Tail2]) :-
-			(is_list(Head) -> 
-				parseList(Head, Head2);
-				(atomic(Head) -> 
-					Head2 = Head; 
-					parseTerm(Head, Head2)
-				)
-			),
-			parseList(Tail, Tail2).
+ 		// click sound of button
+ 	 	function playClick() {
+ 			clickSound.play(); 
+ 		}
 
 	</script>
 
@@ -119,30 +139,33 @@
 	
 </head>
 <body>
-	
-	
-	<div style="width:800px; margin-left: 10%; margin-top: 10%">
-
-		<h1>Demo game Black Jack</h1>
+	<div id="playarea">
+		<h1>Prolog Black Jack</h1>
 		</p>
-		<h3>This simple game is intended as template for projects using SWI Prolog, its Pengines library and Tau-Prolog.</h3>
+		This simple Black Jack like game is intended as example for projects using <a href="http://www.swi-prolog.org">SWI Prolog</a>, its Pengines library and <a href="http://www.tau-prolog.org"> Tau-Prolog</a>. Graphics is done with <a href="https://p5js.org/">JS Processing variant p5js</a>. This is no Casino game, there is nothing to win and no purpose. It's just a demo - for experimenting with. Soucecode is available at <a href="https://github.com/hnbeck/ecblackjack">https://github.com/hnbeck/ecblackjack</a> with no warranties. See license information at <a href="https://github.com/hnbeck/ecblackjack">Github</a>. <p> 
+		Click on the deck for drawing a card or click "Stand"-button to give the dealer the control. Do a page refresh for a new game.
 		<p>
-		If the page is loaded, a pengine query is triggerd (playGame(P1, P2)). This initialise the game and set up both players P1 and P2.  </p>
-		<p> The test below queries for a hard coded predicate <i>fact(world, sphere)</i>.</p>
+		<button id='btStand' onclick="playClick()">Stand</button>
+		<p>
+		<div id='p1Container'></div>	
+		</p>
+		<div id="pout"></div>
+		<hr>
+	</div>
+	
+	<!-- standard this section is invisible - only for debug -->
 
-		</p>
-		Output of Pengine
-		</p>
-		<div style="padding:20px; border-color:blue; background-color: lightgray;" id="pout">Output element for Pengine</div>
-		</p>
-		Output for Tau Prolog queries. Output is done via callback of the pl.answer function of Tau Prolog. Click <a href="javascript:test()"> here </a> for test
-		</p>
-		<div style="padding:20px; border-color:black; background-color: lightblue;" id="Tauout">Tau Prolog queries</div>
-		</p>
-		Output of Tau terms. Tau Terms are stringifyd over html element. Clicking <a href="javascript:analyse()"> here </a> would parse the Pengine output and write it into html stream.
-		</p>
-		<div style="padding:20px; border-color:black; background-color: lightgreen;" id="Tauhtml">Tau terms</div>
+	<div id="testblock"> 
+		<h4> Test / Debug area </h4>
+		<p> The test below queries for a hard coded predicate .</p>
 
+		 Output for Tau Prolog queries. Output is done via callback of the pl.answer function of Tau Prolog.
+		 </p>
+		 <div id="Tauout"></div>
+		 </p>
+		 <div id="Tauhtml">Tau terms</div>
+		 </p>
+		 <div id="Taumsg">Tau terms</div>
 	</div>
 </p>
 	
