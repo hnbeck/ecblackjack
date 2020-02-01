@@ -10,6 +10,8 @@ The idea is to test a web browser based interface for a SWI-Prolog applications 
 
 You need a SWI Prolog 8.x.x installation. Start the file ecBJServer.pl to start the server. In the web browser head to http://localhost:7007 to start the game. If graphics does not come not up just reload.
 
+The docker image can be found at [Dockerhub](https://hub.docker.com/repository/docker/hnbeck/ecblackjack)
+
 ## License
 
 License ist MIT. The software is provided as is with no warranties.
