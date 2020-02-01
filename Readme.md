@@ -12,7 +12,7 @@ You need a SWI Prolog 8.x.x installation. Start the file ecBJServer.pl to start 
 
 The docker image can be fetched from dockerhub 
 
-		docker push hnbeck/ecblackjack:ecbj
+		docker pull hnbeck/ecblackjack:ecbj
 
 ## License
 
