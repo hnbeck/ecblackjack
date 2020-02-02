@@ -7,7 +7,7 @@ COPY src /app
 RUN cd /app
 WORKDIR /app
 
-EXPOSE 7007
+EXPOSE 80
 
 
 ENTRYPOINT ["swipl", "ecBJServer.pl"]
